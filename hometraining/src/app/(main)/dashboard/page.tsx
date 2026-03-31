@@ -6,7 +6,22 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { courseApi } from '@/lib/api';
+import { MOCK_COURSES } from '@/lib/mockData';
 import { Course } from '@/types';
+
+const THUMBNAIL_STYLES: Record<number, { emoji: string; bg: string }> = {
+  1: { emoji: '🧘', bg: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)' },
+  2: { emoji: '💪', bg: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)' },
+  3: { emoji: '🔥', bg: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)' },
+  4: { emoji: '🏋️', bg: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)' },
+  5: { emoji: '⚡', bg: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)' },
+  6: { emoji: '🦵', bg: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)' },
+  7: { emoji: '🤸', bg: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)' },
+  8: { emoji: '🏃', bg: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)' },
+};
+function getThumbnail(id: number) {
+  return THUMBNAIL_STYLES[id] ?? { emoji: '🏋️', bg: 'var(--bg-elevated)' };
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -14,7 +29,10 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
-    courseApi.getAll().then(setCourses).catch(console.error);
+    courseApi
+      .getAll()
+      .then((data) => setCourses(data.length > 0 ? data : MOCK_COURSES))
+      .catch(() => setCourses(MOCK_COURSES));
   }, []);
 
   // 통계 계산
@@ -126,29 +144,30 @@ export default function DashboardPage() {
               gap: 16,
             }}
           >
-            {courses.slice(0, 3).map((course) => (
+            {courses.slice(0, 3).map((course) => {
+              const thumb = getThumbnail(course.id);
+              return (
               <Link
                 key={course.id}
                 href={`/courses/${course.id}`}
                 style={{ textDecoration: 'none' }}
               >
-                <div className="card" style={{ padding: 24, cursor: 'pointer' }}>
-                  {/* 썸네일 placeholder */}
+                <div className="card" style={{ padding: 0, cursor: 'pointer', overflow: 'hidden' }}>
+                  {/* 썸네일 */}
                   <div
                     style={{
                       height: 120,
-                      background: 'var(--bg-elevated)',
-                      borderRadius: 8,
-                      marginBottom: 16,
+                      background: thumb.bg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 36,
+                      fontSize: 40,
                     }}
                   >
-                    🏋️
+                    {thumb.emoji}
                   </div>
 
+                  <div style={{ padding: '16px 20px 20px' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -174,7 +193,7 @@ export default function DashboardPage() {
                       fontSize: 15,
                       fontWeight: 700,
                       marginBottom: 6,
-                      color: 'var(--text-primary)',
+                      color: '#ffffff',
                     }}
                   >
                     {course.title}
@@ -192,9 +211,11 @@ export default function DashboardPage() {
                   >
                     {course.description}
                   </p>
+                  </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

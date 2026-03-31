@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { courseApi } from '@/lib/api';
+import { MOCK_COURSES } from '@/lib/mockData';
 import { Course } from '@/types';
 
 const DIFFICULTIES = [
@@ -25,17 +26,53 @@ const difficultyClass: Record<string, string> = {
   advanced: 'badge-advanced',
 };
 
+// 강의 id 기반으로 고정된 썸네일 이모지와 배경색 지정
+const THUMBNAIL_STYLES: Record<number, { emoji: string; bg: string }> = {
+  1: { emoji: '🧘', bg: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)' },
+  2: { emoji: '💪', bg: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)' },
+  3: { emoji: '🔥', bg: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)' },
+  4: { emoji: '🏋️', bg: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)' },
+  5: { emoji: '⚡', bg: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)' },
+  6: { emoji: '🦵', bg: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)' },
+  7: { emoji: '🤸', bg: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)' },
+  8: { emoji: '🏃', bg: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)' },
+};
+
+function getThumbnail(id: number) {
+  return THUMBNAIL_STYLES[id] ?? { emoji: '🏋️', bg: 'var(--bg-elevated)' };
+}
+
+// MET 값에 따른 강도 설명
+function getIntensityLabel(met: number): string {
+  if (met < 3.5) return '저강도';
+  if (met < 6.0) return '중강도';
+  return '고강도';
+}
+
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMock, setIsMock] = useState(false);
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     courseApi
       .getAll()
-      .then(setCourses)
-      .catch(console.error)
+      .then((data) => {
+        // API에서 데이터가 없으면 mock으로 폴백
+        if (data.length === 0) {
+          setCourses(MOCK_COURSES);
+          setIsMock(true);
+        } else {
+          setCourses(data);
+        }
+      })
+      .catch(() => {
+        // API 연결 실패 시 mock 데이터 사용
+        setCourses(MOCK_COURSES);
+        setIsMock(true);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -52,7 +89,9 @@ export default function CoursesPage() {
     <div className="fade-in">
       {/* 헤더 */}
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700 }}>강의 목록</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700 }}>강의 목록</h1>
+        </div>
         <p style={{ color: 'var(--text-secondary)', marginTop: 6 }}>
           총 {courses.length}개의 강의
         </p>
@@ -119,63 +158,109 @@ export default function CoursesPage() {
             gap: 20,
           }}
         >
-          {filtered.map((course) => (
-            <Link
-              key={course.id}
-              href={`/courses/${course.id}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <div
-                className="card"
-                style={{ padding: 24, cursor: 'pointer', height: '100%' }}
+          {filtered.map((course) => {
+            const thumb = getThumbnail(course.id);
+            return (
+              <Link
+                key={course.id}
+                href={`/courses/${course.id}`}
+                style={{ textDecoration: 'none' }}
               >
-                {/* 썸네일 */}
                 <div
+                  className="card"
                   style={{
-                    height: 140,
-                    background: 'var(--bg-elevated)',
-                    borderRadius: 8,
-                    marginBottom: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 44,
-                  }}
-                >
-                  🏋️
-                </div>
-
-                {/* 메타 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span className={`badge ${difficultyClass[course.difficulty] || 'badge-beginner'}`}>
-                    {difficultyLabel[course.difficulty] || course.difficulty}
-                  </span>
-                  {course.lecture_count !== undefined && (
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      강의 {course.lecture_count}개
-                    </span>
-                  )}
-                </div>
-
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-                  {course.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.6,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
+                    padding: 0,
+                    cursor: 'pointer',
+                    height: '100%',
                     overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
-                  {course.description}
-                </p>
-              </div>
-            </Link>
-          ))}
+                  {/* 썸네일 */}
+                  <div
+                    style={{
+                      height: 148,
+                      background: thumb.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 52,
+                      position: 'relative',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {thumb.emoji}
+                    {/* 강도 뱃지 오른쪽 하단 */}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: 10,
+                        right: 12,
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        borderRadius: 20,
+                        background: 'rgba(0,0,0,0.55)',
+                        color: 'var(--text-secondary)',
+                        backdropFilter: 'blur(4px)',
+                      }}
+                    >
+                      {getIntensityLabel(course.met_value)} · MET {course.met_value}
+                    </span>
+                  </div>
+
+                  {/* 콘텐츠 */}
+                  <div style={{ padding: '18px 20px 22px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    {/* 메타 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span className={`badge ${difficultyClass[course.difficulty] || 'badge-beginner'}`}>
+                        {difficultyLabel[course.difficulty] || course.difficulty}
+                      </span>
+                      {course.lecture_count !== undefined && (
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                          강의 {course.lecture_count}개
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, lineHeight: 1.4, color: '#ffffff' }}>
+                      {course.title}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: 13,
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.65,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        flex: 1,
+                      }}
+                    >
+                      {course.description}
+                    </p>
+
+                    {/* 수강 시작 링크 힌트 */}
+                    <div
+                      style={{
+                        marginTop: 16,
+                        fontSize: 13,
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      수강 시작하기
+                      <span style={{ fontSize: 11 }}>→</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { courseApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
+import { MOCK_COURSES, MOCK_LECTURES } from '@/lib/mockData';
 import { Course, Lecture } from '@/types';
 
 const difficultyLabel: Record<string, string> = {
@@ -43,7 +44,13 @@ export default function CourseDetailPage() {
         setCourse(c);
         setLectures(l);
       })
-      .catch(console.error)
+      .catch(() => {
+        // API 실패 시 mock 데이터로 폴백
+        const mockCourse = MOCK_COURSES.find((c) => c.id === courseId) ?? null;
+        const mockLectures = MOCK_LECTURES[courseId] ?? [];
+        setCourse(mockCourse);
+        setLectures(mockLectures);
+      })
       .finally(() => setIsLoading(false));
   }, [id]);
 
@@ -185,7 +192,7 @@ export default function CourseDetailPage() {
 
                   {/* 제목 & 진도 */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, color: '#ffffff' }}>
                       {lecture.title}
                     </div>
                     {watchedTime > 0 && !isCompleted && (
