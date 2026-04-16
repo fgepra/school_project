@@ -4,10 +4,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { courseApi, lectureApi } from '@/lib/api';
+import { courseApi, lectureApi, commentApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
-import { Lecture } from '@/types';
+import { Lecture, Comment } from '@/types';
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -17,12 +17,20 @@ function formatTime(sec: number): string {
 
 export default function LectureWatchPage() {
   const { id: courseId, lectureId } = useParams<{ id: string; lectureId: string }>();
-  const { user } = useAuth();
+  const { user, isInstructor } = useAuth();
   const { getProgress, saveProgress } = useProgress(user?.id ?? null);
 
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [allLectures, setAllLectures] = useState<Lecture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 댓글 상태
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
 
   // 비디오 상태
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,6 +54,75 @@ export default function LectureWatchPage() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [lectureId, courseId]);
+
+  // 댓글 불러오기
+  useEffect(() => {
+    if (!user) return;
+    commentApi.getByLecture(Number(lectureId))
+      .then(setComments)
+      .catch(console.error);
+  }, [lectureId, user]);
+
+  const handleAddComment = async () => {
+    if (!commentText.trim() || commentLoading) return;
+    setCommentLoading(true);
+    try {
+      const newComment = await commentApi.create(Number(lectureId), commentText.trim());
+      setComments((prev) => [...prev, newComment]);
+      setCommentText('');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '댓글 작성에 실패했습니다.');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
+    try {
+      await commentApi.delete(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '삭제에 실패했습니다.');
+    }
+  };
+
+  const handleAddReply = async (commentId: number) => {
+    if (!replyText.trim() || replyLoading) return;
+    setReplyLoading(true);
+    try {
+      const newReply = await commentApi.createReply(commentId, replyText.trim());
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, replies: [...(c.replies ?? []), newReply] }
+            : c
+        )
+      );
+      setReplyText('');
+      setReplyingTo(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '답글 작성에 실패했습니다.');
+    } finally {
+      setReplyLoading(false);
+    }
+  };
+
+  const handleDeleteReply = async (commentId: number, replyId: number) => {
+    if (!window.confirm('답글을 삭제하시겠습니까?')) return;
+    try {
+      await commentApi.deleteReply(replyId);
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, replies: (c.replies ?? []).filter((r) => r.id !== replyId) }
+            : c
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '삭제에 실패했습니다.');
+    }
+  };
 
   // 이미 저장된 진도로 비디오 시작 위치 복원
   useEffect(() => {
@@ -310,6 +387,231 @@ export default function LectureWatchPage() {
             ) : <div style={{ flex: 1 }} />}
           </div>
         </div>
+
+        {/* 댓글 섹션 */}
+        {user && (
+          <div style={{ marginTop: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>
+              댓글 {comments.length > 0 && (
+                <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 400 }}>
+                  ({comments.length})
+                </span>
+              )}
+            </h2>
+
+            {/* 댓글 작성 */}
+            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+              <textarea
+                placeholder="강의에 대한 질문이나 의견을 남겨보세요."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  padding: '10px 14px',
+                  color: 'var(--text-primary)',
+                  fontSize: 14,
+                  resize: 'vertical',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  marginBottom: 12,
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="btn-primary"
+                  onClick={handleAddComment}
+                  disabled={commentLoading || !commentText.trim()}
+                  style={{ padding: '9px 20px', fontSize: 14 }}
+                >
+                  {commentLoading ? '작성 중...' : '댓글 작성'}
+                </button>
+              </div>
+            </div>
+
+            {/* 댓글 목록 */}
+            {comments.length === 0 ? (
+              <div
+                className="card"
+                style={{ padding: 32, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}
+              >
+                아직 댓글이 없습니다. 첫 번째 댓글을 남겨보세요!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {comments.map((comment) => (
+                  <div key={comment.id} className="card" style={{ padding: 20 }}>
+                    {/* 댓글 헤더 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14 }}>{comment.user_name}</span>
+                        {comment.user_role && comment.user_role !== 'student' && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: comment.user_role === 'admin' ? 'var(--accent)' : '#60a5fa',
+                              background: comment.user_role === 'admin' ? 'var(--accent-dim)' : 'rgba(96,165,250,0.15)',
+                              padding: '2px 8px',
+                              borderRadius: 20,
+                            }}
+                          >
+                            {comment.user_role === 'admin' ? '관리자' : '강사'}
+                          </span>
+                        )}
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                          {new Date(comment.created_at).toLocaleDateString('ko-KR')}
+                        </span>
+                      </div>
+                      {(user.id === comment.user_id || user.role === 'admin') && (
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          style={{
+                            fontSize: 12,
+                            color: 'var(--text-secondary)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '2px 6px',
+                          }}
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 댓글 내용 */}
+                    <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: 12 }}>
+                      {comment.content}
+                    </p>
+
+                    {/* 답글 목록 */}
+                    {(comment.replies ?? []).length > 0 && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          paddingTop: 12,
+                          borderTop: '1px solid var(--border)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 10,
+                        }}
+                      >
+                        {(comment.replies ?? []).map((reply) => (
+                          <div
+                            key={reply.id}
+                            style={{
+                              display: 'flex',
+                              gap: 10,
+                              paddingLeft: 12,
+                              borderLeft: '2px solid var(--accent)',
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontWeight: 700, fontSize: 13 }}>{reply.user_name}</span>
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: reply.user_role === 'admin' ? 'var(--accent)' : '#60a5fa',
+                                    background: reply.user_role === 'admin' ? 'var(--accent-dim)' : 'rgba(96,165,250,0.15)',
+                                    padding: '2px 8px',
+                                    borderRadius: 20,
+                                  }}
+                                >
+                                  {reply.user_role === 'admin' ? '관리자' : '강사'}
+                                </span>
+                                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                                  {new Date(reply.created_at).toLocaleDateString('ko-KR')}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                                {reply.content}
+                              </p>
+                            </div>
+                            {(user.id === reply.user_id || user.role === 'admin') && (
+                              <button
+                                onClick={() => handleDeleteReply(comment.id, reply.id)}
+                                style={{
+                                  fontSize: 12,
+                                  color: 'var(--text-secondary)',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  alignSelf: 'flex-start',
+                                  padding: '2px 6px',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                삭제
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 답글 작성 (강사/관리자만) */}
+                    {isInstructor && (
+                      <div style={{ marginTop: 12 }}>
+                        {replyingTo === comment.id ? (
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <textarea
+                              placeholder="답글을 입력하세요..."
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              rows={2}
+                              style={{
+                                flex: 1,
+                                background: 'var(--bg-elevated)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 8,
+                                padding: '8px 12px',
+                                color: 'var(--text-primary)',
+                                fontSize: 13,
+                                resize: 'none',
+                                outline: 'none',
+                              }}
+                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              <button
+                                className="btn-primary"
+                                onClick={() => handleAddReply(comment.id)}
+                                disabled={replyLoading || !replyText.trim()}
+                                style={{ padding: '7px 14px', fontSize: 12 }}
+                              >
+                                {replyLoading ? '...' : '답글'}
+                              </button>
+                              <button
+                                className="btn-ghost"
+                                onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                style={{ padding: '7px 14px', fontSize: 12 }}
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className="btn-ghost"
+                            onClick={() => { setReplyingTo(comment.id); setReplyText(''); }}
+                            style={{ padding: '6px 12px', fontSize: 12 }}
+                          >
+                            답글 달기
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 사이드바 - 강의 목록 */}
         <div>
