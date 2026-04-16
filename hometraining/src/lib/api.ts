@@ -53,6 +53,30 @@ async function apiFetch<T>(
   return json;
 }
 
+// multipart/form-data 전송 (파일 업로드용)
+// Content-Type 헤더를 수동으로 지정하지 않아야 브라우저가 boundary를 자동 추가함
+async function apiFetchFormData<T>(
+  endpoint: string,
+  method: 'POST' | 'PUT',
+  formData: FormData
+): Promise<T> {
+  const token = getToken();
+
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    method,
+    headers: token ? { Authorization: token } : {},
+    body: formData,
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    throw new Error(json.message || '요청 실패');
+  }
+
+  return json;
+}
+
 // ─── 인증 API ────────────────────────────────────────────────
 
 export const authApi = {
@@ -119,17 +143,12 @@ export const instructorApi = {
   // 강의(Course) 관리
   getMyCourses: () => apiFetch<Course[]>('/instructor/courses'),
 
-  createCourse: (data: CourseCreateRequest) =>
-    apiFetch<{ message: string; courseId: number }>('/instructor/courses', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  // FormData를 사용해 이미지 파일 포함 전송
+  createCourse: (formData: FormData) =>
+    apiFetchFormData<{ message: string; courseId: number }>('/instructor/courses', 'POST', formData),
 
-  updateCourse: (courseId: number, data: Partial<CourseCreateRequest>) =>
-    apiFetch<{ message: string }>(`/instructor/courses/${courseId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  updateCourse: (courseId: number, formData: FormData) =>
+    apiFetchFormData<{ message: string }>(`/instructor/courses/${courseId}`, 'PUT', formData),
 
   deleteCourse: (courseId: number) =>
     apiFetch<{ message: string }>(`/instructor/courses/${courseId}`, {

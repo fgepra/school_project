@@ -31,7 +31,7 @@ exports.getMyCourses = (req, res) => {
 
 // 강의 생성
 exports.createCourse = (req, res) => {
-  const { title, description, difficulty, met_value, thumbnail } = req.body;
+  const { title, description, difficulty, met_value } = req.body;
   const instructorId = req.user.id;
 
   if (!title || !description || !difficulty) {
@@ -43,11 +43,14 @@ exports.createCourse = (req, res) => {
     return res.status(400).json({ message: "유효하지 않은 난이도입니다." });
   }
 
+  // 업로드된 이미지가 있으면 경로를 DB에 저장, 없으면 null
+  const thumbnailPath = req.file ? `/uploads/thumbnails/${req.file.filename}` : null;
+
   const sql = `
     INSERT INTO courses (title, description, difficulty, met_value, thumbnail, instructor_id, created_at)
     VALUES (?, ?, ?, ?, ?, ?, NOW())
   `;
-  db.query(sql, [title, description, difficulty, met_value || 3.0, thumbnail || null, instructorId], (err, result) => {
+  db.query(sql, [title, description, difficulty, met_value || 3.0, thumbnailPath, instructorId], (err, result) => {
     if (err) return res.status(500).json({ message: "서버 오류", error: err });
     res.status(201).json({ message: "강의가 생성되었습니다.", courseId: result.insertId });
   });
@@ -56,14 +59,14 @@ exports.createCourse = (req, res) => {
 // 강의 수정
 exports.updateCourse = (req, res) => {
   const { courseId } = req.params;
-  const { title, description, difficulty, met_value, thumbnail } = req.body;
+  const { title, description, difficulty, met_value } = req.body;
   const instructorId = req.user.id;
   const isAdmin = req.user.role === 'admin';
 
   // 권한 확인: 본인의 강의이거나 관리자인 경우만 수정 가능
   const checkSql = isAdmin
-    ? "SELECT id FROM courses WHERE id = ?"
-    : "SELECT id FROM courses WHERE id = ? AND instructor_id = ?";
+    ? "SELECT id, thumbnail FROM courses WHERE id = ?"
+    : "SELECT id, thumbnail FROM courses WHERE id = ? AND instructor_id = ?";
   const checkParams = isAdmin ? [courseId] : [courseId, instructorId];
 
   db.query(checkSql, checkParams, (err, results) => {
@@ -72,11 +75,16 @@ exports.updateCourse = (req, res) => {
       return res.status(403).json({ message: "해당 강의에 대한 권한이 없습니다." });
     }
 
+    // 새 이미지가 업로드됐으면 새 경로, 아니면 기존 썸네일 유지
+    const thumbnailPath = req.file
+      ? `/uploads/thumbnails/${req.file.filename}`
+      : results[0].thumbnail;
+
     const sql = `
       UPDATE courses SET title = ?, description = ?, difficulty = ?, met_value = ?, thumbnail = ?
       WHERE id = ?
     `;
-    db.query(sql, [title, description, difficulty, met_value, thumbnail, courseId], (err) => {
+    db.query(sql, [title, description, difficulty, met_value, thumbnailPath, courseId], (err) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.json({ message: "강의가 수정되었습니다." });
     });

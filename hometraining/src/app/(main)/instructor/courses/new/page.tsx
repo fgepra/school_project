@@ -1,22 +1,49 @@
 // src/app/(main)/instructor/courses/new/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { instructorApi } from '@/lib/api';
 
 export default function NewCoursePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState({
     title: '',
     description: '',
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
     met_value: '3.0',
-    thumbnail: '',
   });
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 5MB 제한 검사
+    if (file.size > 5 * 1024 * 1024) {
+      setError('이미지 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+
+    setThumbnailFile(file);
+    setError('');
+
+    // 미리보기 URL 생성
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleRemoveImage = () => {
+    setThumbnailFile(null);
+    setPreviewUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,14 +51,17 @@ export default function NewCoursePage() {
     setIsLoading(true);
 
     try {
-      const result = await instructorApi.createCourse({
-        title: form.title,
-        description: form.description,
-        difficulty: form.difficulty,
-        met_value: form.met_value ? Number(form.met_value) : undefined,
-        thumbnail: form.thumbnail || undefined,
-      });
-      // 생성 후 해당 강의의 영상 관리 페이지로 이동
+      // FormData로 텍스트 필드 + 이미지 파일을 함께 전송
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('difficulty', form.difficulty);
+      formData.append('met_value', form.met_value);
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      }
+
+      const result = await instructorApi.createCourse(formData);
       router.replace(`/instructor/courses/${result.courseId}/lectures`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '강의 생성에 실패했습니다.');
@@ -54,6 +84,7 @@ export default function NewCoursePage() {
 
       <div className="card" style={{ padding: 32 }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {/* 제목 */}
           <div>
             <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
@@ -91,6 +122,7 @@ export default function NewCoursePage() {
                 resize: 'vertical',
                 outline: 'none',
                 boxSizing: 'border-box',
+                fontFamily: "'Noto Sans KR', sans-serif",
               }}
             />
           </div>
@@ -120,6 +152,7 @@ export default function NewCoursePage() {
                     fontWeight: form.difficulty === value ? 700 : 400,
                     cursor: 'pointer',
                     fontSize: 14,
+                    fontFamily: "'Noto Sans KR', sans-serif",
                   }}
                 >
                   {label}
@@ -145,41 +178,106 @@ export default function NewCoursePage() {
             />
           </div>
 
-          {/* 썸네일 URL */}
+          {/* 썸네일 이미지 업로드 */}
           <div>
-            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-              썸네일 URL (선택)
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
+              썸네일 이미지 (선택 · JPG·PNG·WEBP·GIF · 최대 5MB)
             </label>
+
+            {previewUrl ? (
+              /* 미리보기 */
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img
+                  src={previewUrl}
+                  alt="썸네일 미리보기"
+                  style={{
+                    width: '100%',
+                    maxWidth: 320,
+                    height: 180,
+                    objectFit: 'cover',
+                    borderRadius: 10,
+                    border: '1px solid var(--border)',
+                    display: 'block',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.65)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                  title="이미지 제거"
+                >
+                  ✕
+                </button>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  {thumbnailFile?.name}
+                </p>
+              </div>
+            ) : (
+              /* 업로드 영역 */
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed var(--border)',
+                  borderRadius: 10,
+                  padding: '32px 20px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, background 0.15s',
+                  background: 'var(--bg-elevated)',
+                }}
+                onMouseOver={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--accent)';
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--accent-dim)';
+                }}
+                onMouseOut={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
+                  (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-elevated)';
+                }}
+              >
+                <div style={{ fontSize: 36, marginBottom: 10 }}>🖼️</div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  클릭하여 이미지 선택
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  JPG, PNG, WEBP, GIF · 최대 5MB
+                </p>
+              </div>
+            )}
+
             <input
-              className="input-field"
-              type="url"
-              placeholder="https://example.com/thumbnail.jpg"
-              value={form.thumbnail}
-              onChange={(e) => setForm({ ...form, thumbnail: e.target.value })}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
             />
           </div>
 
           {error && (
-            <p
-              style={{
-                fontSize: 13,
-                color: 'var(--accent)',
-                background: 'var(--accent-dim)',
-                padding: '10px 14px',
-                borderRadius: 8,
-              }}
-            >
+            <p style={{ fontSize: 13, color: 'var(--accent)', background: 'var(--accent-dim)', padding: '10px 14px', borderRadius: 8 }}>
               {error}
             </p>
           )}
 
           <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
             <Link href="/instructor/courses" style={{ flex: 1 }}>
-              <button
-                type="button"
-                className="btn-ghost"
-                style={{ width: '100%', padding: '13px' }}
-              >
+              <button type="button" className="btn-ghost" style={{ width: '100%', padding: '13px' }}>
                 취소
               </button>
             </Link>
