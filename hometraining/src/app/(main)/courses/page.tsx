@@ -76,14 +76,27 @@ export default function CoursesPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const filtered = courses.filter((c) => {
-    const matchDiff = filter === '' || c.difficulty === filter;
-    const matchSearch =
-      search === '' ||
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.description?.toLowerCase().includes(search.toLowerCase());
-    return matchDiff && matchSearch;
-  });
+  const DIFFICULTY_ORDER: Record<string, number> = {
+    beginner: 0,
+    intermediate: 1,
+    advanced: 2,
+  };
+
+  const filtered = courses
+    .filter((c) => {
+      const matchDiff = filter === '' || c.difficulty === filter;
+      const matchSearch =
+        search === '' ||
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.description?.toLowerCase().includes(search.toLowerCase());
+      return matchDiff && matchSearch;
+    })
+    .sort((a, b) => {
+      const da = DIFFICULTY_ORDER[a.difficulty] ?? 99;
+      const db = DIFFICULTY_ORDER[b.difficulty] ?? 99;
+      if (da !== db) return da - db;
+      return a.id - b.id;
+    });
 
   return (
     <div className="fade-in">
