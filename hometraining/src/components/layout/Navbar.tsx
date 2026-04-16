@@ -6,26 +6,56 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { MouseEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
+const ROLE_LABEL: Record<string, string> = {
+  student: '학생',
+  instructor: '강사',
+  admin: '관리자',
+};
+
+const ROLE_COLOR: Record<string, string> = {
+  student: 'var(--text-secondary)',
+  instructor: '#60a5fa',
+  admin: 'var(--accent)',
+};
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, logout, isLoading, isAuthenticated, role, isAdmin, isInstructor } = useAuth();
 
-  const navLinks = [
-    { href: '/dashboard', label: '대시보드' },
-    { href: '/courses', label: '강의 목록' },
-  ];
+  // 역할별 네비게이션 링크 구성
+  const getNavLinks = () => {
+    if (isAdmin) {
+      return [
+        { href: '/admin', label: '관리 대시보드' },
+        { href: '/admin/users', label: '유저 관리' },
+        { href: '/courses', label: '강의 목록' },
+      ];
+    }
+    if (isInstructor) {
+      return [
+        { href: '/instructor', label: '강사 대시보드' },
+        { href: '/instructor/courses', label: '강의 관리' },
+        { href: '/courses', label: '강의 목록' },
+      ];
+    }
+    return [
+      { href: '/dashboard', label: '대시보드' },
+      { href: '/courses', label: '강의 목록' },
+    ];
+  };
+
+  const navLinks = getNavLinks();
 
   const handleDashboardAccess = (e: MouseEvent<HTMLAnchorElement>) => {
-    // 인증 상태 복원 중에는 가로채지 않음
     if (isLoading || isAuthenticated) return;
-
-    // 비로그인일 때 안내 후 이동
     e.preventDefault();
     const ok = window.confirm('로그인이 필요한 서비스입니다');
     if (ok) router.push('/login');
     else router.push('/courses');
   };
+
+  const isStudentDashboardLink = (href: string) => href === '/dashboard';
 
   return (
     <nav
@@ -50,9 +80,9 @@ export default function Navbar() {
       >
         {/* 로고 */}
         <Link
-          href="/dashboard"
+          href={isAuthenticated ? (isAdmin ? '/admin' : isInstructor ? '/instructor' : '/dashboard') : '/courses'}
           style={{ textDecoration: 'none' }}
-          onClick={handleDashboardAccess}
+          onClick={!isAuthenticated ? handleDashboardAccess : undefined}
         >
           <span
             style={{
@@ -69,12 +99,12 @@ export default function Navbar() {
         {/* 네비게이션 링크 */}
         <div style={{ display: 'flex', gap: 4 }}>
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || pathname?.startsWith(link.href + '/');
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={link.href === '/dashboard' ? handleDashboardAccess : undefined}
+                onClick={isStudentDashboardLink(link.href) ? handleDashboardAccess : undefined}
                 style={{
                   padding: '6px 14px',
                   borderRadius: 6,
@@ -95,9 +125,24 @@ export default function Navbar() {
         {/* 유저 영역 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {user && (
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {user.name}님
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: ROLE_COLOR[role],
+                  background: 'var(--bg-elevated)',
+                  padding: '3px 8px',
+                  borderRadius: 20,
+                  border: `1px solid ${ROLE_COLOR[role]}40`,
+                }}
+              >
+                {ROLE_LABEL[role]}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                {user.name}님
+              </span>
+            </div>
           )}
           {user && (
             <button

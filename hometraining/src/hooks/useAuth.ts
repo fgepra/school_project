@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
-import { User, SignupRequest, LoginRequest } from '@/types';
+import { User, UserRole, SignupRequest, LoginRequest } from '@/types';
 
 interface AuthState {
   user: Omit<User, 'password'> | null;
@@ -39,6 +39,15 @@ export function useAuth() {
     }
   }, []);
 
+  // 역할별 기본 경로
+  const getDefaultPath = (role: UserRole): string => {
+    switch (role) {
+      case 'admin': return '/admin';
+      case 'instructor': return '/instructor';
+      default: return '/dashboard';
+    }
+  };
+
   const login = useCallback(async (data: LoginRequest) => {
     const result = await authApi.login(data);
     localStorage.setItem('token', result.token);
@@ -62,11 +71,19 @@ export function useAuth() {
     router.push('/login');
   }, [router]);
 
+  const role: UserRole = state.user?.role ?? 'student';
+  const isAdmin = role === 'admin';
+  const isInstructor = role === 'instructor' || role === 'admin';
+
   return {
     user: state.user,
     token: state.token,
     isLoading: state.isLoading,
     isAuthenticated: !!state.user,
+    role,
+    isAdmin,
+    isInstructor,
+    getDefaultPath,
     login,
     signup,
     logout,

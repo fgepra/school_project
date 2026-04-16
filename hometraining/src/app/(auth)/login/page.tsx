@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, getDefaultPath } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -20,8 +20,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(form);
-      router.replace('/dashboard');
+      const result = await login(form);
+      router.replace(getDefaultPath(result.user.role));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
     } finally {

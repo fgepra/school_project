@@ -2,12 +2,15 @@
 
 // ─── DB 모델 타입 ───────────────────────────────────────────
 
+export type UserRole = 'student' | 'instructor' | 'admin';
+
 export interface User {
   id: number;
   email: string;
   password: string;
   name: string;
   weight: number | null;
+  role: UserRole;
   created_at: string;
 }
 
@@ -17,6 +20,8 @@ export interface Course {
   description: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   met_value: number;
+  instructor_id?: number | null;
+  instructor_name?: string;
   created_at: string;
   // JOIN 결과 추가 필드
   lecture_count?: number;
@@ -29,6 +34,7 @@ export interface Lecture {
   title: string;
   video_url: string;
   duration: number; // 초 단위
+  order_num?: number;
 }
 
 export interface Progress {
@@ -56,6 +62,19 @@ export interface Comment {
   created_at: string;
   // JOIN 결과 추가 필드
   user_name?: string;
+  user_role?: UserRole;
+  replies?: Reply[];
+}
+
+export interface Reply {
+  id: number;
+  comment_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  // JOIN 결과 추가 필드
+  user_name?: string;
+  user_role?: UserRole;
 }
 
 // ─── API 요청/응답 타입 ─────────────────────────────────────
@@ -65,6 +84,7 @@ export interface SignupRequest {
   password: string;
   name: string;
   weight?: number;
+  role?: UserRole;
 }
 
 export interface LoginRequest {
@@ -83,6 +103,21 @@ export interface ProgressSaveRequest {
   watched_time: number;
 }
 
+export interface CourseCreateRequest {
+  title: string;
+  description: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  met_value?: number;
+  thumbnail?: string;
+}
+
+export interface LectureCreateRequest {
+  title: string;
+  video_url?: string;
+  duration?: number;
+  order_num?: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -93,8 +128,18 @@ export interface ApiResponse<T> {
 // ─── JWT Payload 타입 ────────────────────────────────────────
 
 export interface JwtPayload {
-  userId: number;
-  email: string;
+  id: number;
+  role: UserRole;
   iat?: number;
   exp?: number;
+}
+
+// ─── 관리자 통계 타입 ────────────────────────────────────────
+
+export interface AdminStats {
+  totalUsers: number;
+  roleStats: { role: UserRole; count: number }[];
+  totalCourses: number;
+  totalLectures: number;
+  completedProgress: number;
 }
