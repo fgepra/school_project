@@ -9,18 +9,21 @@ import { courseApi } from '@/lib/api';
 import { MOCK_COURSES } from '@/lib/mockData';
 import { Course } from '@/types';
 
-const THUMBNAIL_STYLES: Record<number, { emoji: string; bg: string }> = {
-  1: { emoji: '🧘', bg: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)' },
-  2: { emoji: '💪', bg: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)' },
-  3: { emoji: '🔥', bg: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)' },
-  4: { emoji: '🏋️', bg: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)' },
-  5: { emoji: '⚡', bg: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)' },
-  6: { emoji: '🦵', bg: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)' },
-  7: { emoji: '🤸', bg: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)' },
-  8: { emoji: '🏃', bg: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)' },
+const THUMBNAIL_BG: Record<number, string> = {
+  1: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)',
+  2: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)',
+  3: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)',
+  4: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)',
+  5: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)',
+  6: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)',
+  7: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)',
+  8: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)',
 };
-function getThumbnail(id: number) {
-  return THUMBNAIL_STYLES[id] ?? { emoji: '🏋️', bg: 'var(--bg-elevated)' };
+
+const BACKEND_URL = 'http://localhost:5000';
+
+function getThumbnailBg(id: number) {
+  return THUMBNAIL_BG[id] ?? 'var(--bg-elevated)';
 }
 
 export default function DashboardPage() {
@@ -145,7 +148,6 @@ export default function DashboardPage() {
             }}
           >
             {courses.slice(0, 3).map((course) => {
-              const thumb = getThumbnail(course.id);
               return (
               <Link
                 key={course.id}
@@ -153,18 +155,22 @@ export default function DashboardPage() {
                 style={{ textDecoration: 'none' }}
               >
                 <div className="card" style={{ padding: 0, cursor: 'pointer', overflow: 'hidden' }}>
-                  {/* 썸네일 */}
+                  {/* 썸네일: 업로드 이미지 우선, 없으면 그라디언트 배경만 */}
                   <div
                     style={{
                       height: 120,
-                      background: thumb.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 40,
+                      background: course.thumbnail ? '#111' : getThumbnailBg(course.id),
+                      position: 'relative',
+                      overflow: 'hidden',
                     }}
                   >
-                    {thumb.emoji}
+                    {course.thumbnail && (
+                      <img
+                        src={`${BACKEND_URL}${course.thumbnail}`}
+                        alt={course.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
                   </div>
 
                   <div style={{ padding: '16px 20px 20px' }}>

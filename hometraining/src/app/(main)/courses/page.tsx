@@ -26,22 +26,22 @@ const difficultyClass: Record<string, string> = {
   advanced: 'badge-advanced',
 };
 
-// 강의 id 기반으로 고정된 썸네일 이모지와 배경색 지정 (이미지 없을 때 폴백)
-const THUMBNAIL_STYLES: Record<number, { emoji: string; bg: string }> = {
-  1: { emoji: '🧘', bg: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)' },
-  2: { emoji: '💪', bg: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)' },
-  3: { emoji: '🔥', bg: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)' },
-  4: { emoji: '🏋️', bg: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)' },
-  5: { emoji: '⚡', bg: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)' },
-  6: { emoji: '🦵', bg: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)' },
-  7: { emoji: '🤸', bg: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)' },
-  8: { emoji: '🏃', bg: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)' },
+// 강의 id 기반으로 고정된 썸네일 배경색 지정 (업로드 이미지 없을 때 폴백)
+const THUMBNAIL_BG: Record<number, string> = {
+  1: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)',
+  2: 'linear-gradient(135deg, #1a1a2e 0%, #0d0d1f 100%)',
+  3: 'linear-gradient(135deg, #2e1a1a 0%, #1f0d0d 100%)',
+  4: 'linear-gradient(135deg, #1a1e2e 0%, #0d1020 100%)',
+  5: 'linear-gradient(135deg, #2e2a1a 0%, #1f1a0d 100%)',
+  6: 'linear-gradient(135deg, #2e1a22 0%, #1f0d14 100%)',
+  7: 'linear-gradient(135deg, #1a2e2a 0%, #0d1f1c 100%)',
+  8: 'linear-gradient(135deg, #2a1a2e 0%, #1c0d1f 100%)',
 };
 
 const BACKEND_URL = 'http://localhost:5000';
 
-function getThumbnail(id: number) {
-  return THUMBNAIL_STYLES[id] ?? { emoji: '🏋️', bg: 'var(--bg-elevated)' };
+function getThumbnailBg(id: number) {
+  return THUMBNAIL_BG[id] ?? 'var(--bg-elevated)';
 }
 
 // MET 값에 따른 강도 설명
@@ -174,7 +174,6 @@ export default function CoursesPage() {
           }}
         >
           {filtered.map((course) => {
-            const thumb = getThumbnail(course.id);
             return (
               <Link
                 key={course.id}
@@ -192,28 +191,22 @@ export default function CoursesPage() {
                     flexDirection: 'column',
                   }}
                 >
-                  {/* 썸네일: 업로드 이미지 우선, 없으면 이모지+그라디언트 */}
+                  {/* 썸네일: 업로드 이미지 우선, 없으면 그라디언트 배경만 */}
                   <div
                     style={{
                       height: 148,
-                      background: course.thumbnail ? '#111' : thumb.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 52,
+                      background: course.thumbnail ? '#111' : getThumbnailBg(course.id),
                       position: 'relative',
                       flexShrink: 0,
                       overflow: 'hidden',
                     }}
                   >
-                    {course.thumbnail ? (
+                    {course.thumbnail && (
                       <img
                         src={`${BACKEND_URL}${course.thumbnail}`}
                         alt={course.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                    ) : (
-                      thumb.emoji
                     )}
                     {/* 강도 뱃지 오른쪽 하단 */}
                     <span
