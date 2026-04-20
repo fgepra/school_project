@@ -42,6 +42,7 @@ export default function Navbar() {
     return [
       { href: '/dashboard', label: '대시보드' },
       { href: '/courses', label: '강의 목록' },
+      { href: '/motion', label: '모션 캡처' },
     ];
   };
 
