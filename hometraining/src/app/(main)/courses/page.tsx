@@ -90,7 +90,8 @@ export default function CoursesPage() {
       const matchSearch =
         search === '' ||
         c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.description?.toLowerCase().includes(search.toLowerCase());
+        c.description?.toLowerCase().includes(search.toLowerCase()) ||
+        c.instructor_name?.toLowerCase().includes(search.toLowerCase()); // 추가
       return matchDiff && matchSearch;
     })
     .sort((a, b) => {
@@ -124,7 +125,7 @@ export default function CoursesPage() {
         <input
           className="input-field"
           style={{ flex: 1, minWidth: 200 }}
-          placeholder="강의 제목 검색..."
+          placeholder="강의 제목, 강사명 검색..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -259,6 +260,11 @@ export default function CoursesPage() {
                     </p>
 
                     {/* 수강 시작 링크 힌트 */}
+                    {course.instructor_name && (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                        👤 {course.instructor_name}
+                      </div>
+                    )}
                     <div
                       style={{
                         marginTop: 16,

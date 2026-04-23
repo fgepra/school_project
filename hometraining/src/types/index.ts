@@ -48,10 +48,29 @@ export interface Progress {
 export interface WorkoutRecord {
   id: number;
   user_id: number;
-  lecture_id: number;
-  exercise_time: number;
+  lecture_id: number | null;
+  course_id: number | null;
+  duration_sec: number;
   calories_burned: number;
+  recorded_at: string;
+  lecture_title?: string;
+  course_title?: string;
+}
+
+export interface WorkoutDayStat {
   date: string;
+  total_sessions: number;
+  total_duration_sec: number;
+  total_calories: number;
+}
+
+export interface StudentProgress {
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  completed_count: number;
+  total_watched_sec: number;
+  last_activity: string | null;
 }
 
 export interface Comment {
@@ -142,4 +161,8 @@ export interface AdminStats {
   totalCourses: number;
   totalLectures: number;
   completedProgress: number;
+}
+
+export interface BookmarkedCourse extends Course {
+  bookmark_id: number;
 }

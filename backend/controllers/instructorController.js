@@ -185,6 +185,47 @@ exports.updateLecture = (req, res) => {
   });
 };
 
+// 강의별 수강생 진도 현황
+exports.getCourseStudentProgress = (req, res) => {
+  const { courseId } = req.params;
+  const instructorId = req.user.id;
+  const isAdmin = req.user.role === 'admin';
+
+  // 본인 강의 또는 관리자만 접근 가능
+  const checkSql = isAdmin
+    ? "SELECT id FROM courses WHERE id = ?"
+    : "SELECT id FROM courses WHERE id = ? AND instructor_id = ?";
+  const checkParams = isAdmin ? [courseId] : [courseId, instructorId];
+
+  db.query(checkSql, checkParams, (err, results) => {
+    if (err) return res.status(500).json({ message: "서버 오류", error: err });
+    if (results.length === 0) {
+      return res.status(403).json({ message: "해당 강의에 대한 권한이 없습니다." });
+    }
+
+    const sql = `
+      SELECT
+        u.id AS user_id,
+        u.name AS user_name,
+        u.email AS user_email,
+        COUNT(CASE WHEN p.completed = 1 THEN 1 END) AS completed_count,
+        COALESCE(SUM(p.watched_time), 0) AS total_watched_sec,
+        MAX(p.updated_at) AS last_activity
+      FROM progress p
+      JOIN users u ON p.user_id = u.id
+      JOIN lectures l ON p.lecture_id = l.id
+      WHERE l.course_id = ?
+      GROUP BY u.id, u.name, u.email
+      ORDER BY last_activity DESC
+    `;
+
+    db.query(sql, [courseId], (err, results) => {
+      if (err) return res.status(500).json({ message: "서버 오류", error: err });
+      res.json(results);
+    });
+  });
+};
+
 // 강의 영상 삭제
 exports.deleteLecture = (req, res) => {
   const { lectureId } = req.params;

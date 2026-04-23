@@ -130,6 +130,39 @@ exports.createReply = (req, res) => {
   });
 };
 
+// 댓글 수정 (본인만 가능)
+exports.updateComment = (req, res) => {
+  const { commentId } = req.params;
+  const { content } = req.body;
+  const userId = req.user.id;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ message: "댓글 내용을 입력해주세요." });
+  }
+
+  // 본인 댓글만 수정 가능 (관리자도 수정 불가)
+  db.query("SELECT id FROM comments WHERE id = ? AND user_id = ?", [commentId, userId], (err, results) => {
+    if (err) return res.status(500).json({ message: "서버 오류", error: err });
+    if (results.length === 0) {
+      return res.status(403).json({ message: "수정 권한이 없습니다." });
+    }
+
+    db.query("UPDATE comments SET content = ? WHERE id = ?", [content.trim(), commentId], (err) => {
+      if (err) return res.status(500).json({ message: "서버 오류", error: err });
+
+      const selectSql = `
+        SELECT c.*, u.name AS user_name, u.role AS user_role
+        FROM comments c JOIN users u ON c.user_id = u.id
+        WHERE c.id = ?
+      `;
+      db.query(selectSql, [commentId], (err, rows) => {
+        if (err) return res.status(500).json({ message: "서버 오류", error: err });
+        res.json(rows[0]);
+      });
+    });
+  });
+};
+
 // 답글 삭제 (작성자 본인 또는 관리자만 가능)
 exports.deleteReply = (req, res) => {
   const { replyId } = req.params;

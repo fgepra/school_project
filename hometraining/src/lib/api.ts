@@ -15,6 +15,10 @@ import {
   Reply,
   User,
   AdminStats,
+  WorkoutRecord,
+  WorkoutDayStat,
+  StudentProgress,
+  BookmarkedCourse,
 } from '@/types';
 
 // 🔥 Express 서버 주소로 변경
@@ -175,6 +179,9 @@ export const instructorApi = {
     apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}`, {
       method: 'DELETE',
     }),
+
+  getStudentProgress: (courseId: number) =>
+    apiFetch<StudentProgress[]>(`/instructor/courses/${courseId}/student-progress`),
 };
 
 // ─── 댓글 API ────────────────────────────────────────────────
@@ -208,5 +215,48 @@ export const commentApi = {
   deleteReply: (replyId: number) =>
     apiFetch<{ message: string }>(`/comments/replies/${replyId}`, {
       method: 'DELETE',
+    }),
+
+  // 댓글 수정 (본인만)
+  updateComment: (commentId: number, content: string) =>
+    apiFetch<Comment>(`/comments/${commentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    }),
+};
+
+// ─── 운동 기록 API ───────────────────────────────────────────
+
+export const workoutApi = {
+  save: (data: { lecture_id: number; course_id: number; duration_sec: number }) =>
+    apiFetch<{ message: string; recordId: number; calories_burned: number }>('/workout', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getAll: () => apiFetch<WorkoutRecord[]>('/workout'),
+  getStats: () => apiFetch<WorkoutDayStat[]>('/workout/stats'),
+};
+
+// ─── 즐겨찾기 API ────────────────────────────────────────────
+
+export const bookmarkApi = {
+  toggle: (courseId: number) =>
+    apiFetch<{ bookmarked: boolean; message: string }>(`/bookmarks/${courseId}`, { method: 'POST' }),
+  getAll: () => apiFetch<BookmarkedCourse[]>('/bookmarks'),
+  check: (courseId: number) => apiFetch<{ bookmarked: boolean }>(`/bookmarks/${courseId}`),
+};
+
+// ─── 프로필 API ──────────────────────────────────────────────
+
+export const profileApi = {
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiFetch<{ message: string }>('/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+  deleteAccount: (password: string) =>
+    apiFetch<{ message: string }>('/auth/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
     }),
 };

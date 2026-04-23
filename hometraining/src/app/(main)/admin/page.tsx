@@ -120,6 +120,12 @@ export default function AdminDashboardPage() {
               title: '강의 목록',
               desc: '전체 강의 목록 확인',
             },
+            {
+              href: '/admin/courses',
+              icon: '🎓',
+              title: '강의 관리',
+              desc: '전체 강의 생성, 수정, 삭제',
+            },
           ].map((menu) => (
             <Link key={menu.href} href={menu.href} style={{ textDecoration: 'none' }}>
               <div

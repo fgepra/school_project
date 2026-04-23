@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { courseApi } from '@/lib/api';
+import { courseApi, bookmarkApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { MOCK_COURSES, MOCK_LECTURES } from '@/lib/mockData';
@@ -36,9 +36,13 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [bookmarked, setBookmarked] = useState(false);
 
   useEffect(() => {
     const courseId = Number(id);
+    if (user) {
+      bookmarkApi.check(courseId).then((res) => setBookmarked(res.bookmarked)).catch(() => {});
+    }
     Promise.all([courseApi.getById(courseId), courseApi.getLectures(courseId)])
       .then(([c, l]) => {
         setCourse(c);
@@ -69,6 +73,19 @@ export default function CourseDetailPage() {
       </div>
     );
   }
+
+  const handleToggleBookmark = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    try {
+      await bookmarkApi.toggle(Number(id));
+      setBookmarked((prev) => !prev);
+    } catch {
+      // 실패 시 무시
+    }
+  };
 
   const lectureIds = lectures.map((l) => l.id);
   const completionRate = getCompletionRate(lectureIds);
@@ -117,21 +134,39 @@ export default function CourseDetailPage() {
           </div>
         </div>
 
-        {/* MET 정보 */}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            borderRadius: 10,
-            padding: '16px 20px',
-            textAlign: 'center',
-            minWidth: 110,
-          }}
-        >
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--accent)' }}>
-            {course.met_value}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-            MET 값
+        {/* MET 정보 + 북마크 버튼 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+          <button
+            onClick={handleToggleBookmark}
+            style={{
+              fontSize: 22,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: bookmarked ? '#f59e0b' : 'var(--text-secondary)',
+              transition: 'color 0.15s',
+              padding: 0,
+              lineHeight: 1,
+            }}
+            title={bookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+          >
+            {bookmarked ? '★' : '☆'}
+          </button>
+          <div
+            style={{
+              background: 'var(--bg-elevated)',
+              borderRadius: 10,
+              padding: '16px 20px',
+              textAlign: 'center',
+              minWidth: 110,
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--accent)' }}>
+              {course.met_value}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+              MET 값
+            </div>
           </div>
         </div>
       </div>

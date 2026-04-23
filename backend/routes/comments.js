@@ -19,4 +19,7 @@ router.post("/:commentId/replies", authMiddleware, requireInstructor, commentCon
 // DELETE /api/comments/replies/:replyId - 답글 삭제 (본인 or 관리자)
 router.delete("/replies/:replyId", authMiddleware, commentController.deleteReply);
 
+// PATCH /api/comments/:commentId - 댓글 수정 (본인만)
+router.patch("/:commentId", authMiddleware, commentController.updateComment);
+
 module.exports = router;

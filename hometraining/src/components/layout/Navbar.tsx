@@ -43,6 +43,9 @@ export default function Navbar() {
       { href: '/dashboard', label: '대시보드' },
       { href: '/courses', label: '강의 목록' },
       { href: '/motion', label: '모션 캡처' },
+      { href: '/workout', label: '운동 기록' },
+      { href: '/completed', label: '수강 완료' },
+      { href: '/bookmarks', label: '즐겨찾기' },
     ];
   };
 
@@ -144,6 +147,28 @@ export default function Navbar() {
                 {user.name}님
               </span>
             </div>
+          )}
+          {user && (
+            <Link
+              href="/settings"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                fontSize: 16,
+                transition: 'all 0.15s',
+              }}
+              title="설정"
+            >
+              ⚙️
+            </Link>
           )}
           {user && (
             <button

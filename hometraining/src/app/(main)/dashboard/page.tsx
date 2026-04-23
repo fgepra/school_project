@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
-import { courseApi } from '@/lib/api';
+import { courseApi, workoutApi } from '@/lib/api';
 import { MOCK_COURSES } from '@/lib/mockData';
-import { Course } from '@/types';
+import { Course, WorkoutDayStat } from '@/types';
 
 const THUMBNAIL_BG: Record<number, string> = {
   1: 'linear-gradient(135deg, #1a2a1a 0%, #0d1f0d 100%)',
@@ -30,18 +30,21 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { progressList, isLoading: progressLoading } = useProgress(user?.id ?? null);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [workoutStats, setWorkoutStats] = useState<WorkoutDayStat[]>([]);
 
   useEffect(() => {
     courseApi
       .getAll()
       .then((data) => setCourses(data.length > 0 ? data : MOCK_COURSES))
       .catch(() => setCourses(MOCK_COURSES));
+    workoutApi.getStats().then(setWorkoutStats).catch(() => {});
   }, []);
 
   // 통계 계산
   const completedCount = progressList.filter((p) => p.completed).length;
   const totalWatchedSec = progressList.reduce((sum, p) => sum + (p.watched_time || 0), 0);
   const totalWatchedMin = Math.round(totalWatchedSec / 60);
+  const totalCalories = workoutStats.reduce((sum, s) => sum + s.total_calories, 0);
 
   const difficultyLabel: Record<string, string> = {
     beginner: '초급',
@@ -68,11 +71,11 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* 통계 카드 3개 */}
+      {/* 통계 카드 4개 */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 16,
           marginBottom: 40,
         }}
@@ -92,6 +95,11 @@ export default function DashboardPage() {
             label: '수강 가능한 강의',
             value: `${courses.length}개`,
             icon: '📚',
+          },
+          {
+            label: '총 소모 칼로리',
+            value: `${totalCalories}kcal`,
+            icon: '🔥',
           },
         ].map((stat) => (
           <div

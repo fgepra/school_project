@@ -30,4 +30,7 @@ router.post("/courses/:courseId/lectures", instructorController.createLecture);
 router.put("/lectures/:lectureId", instructorController.updateLecture);
 router.delete("/lectures/:lectureId", instructorController.deleteLecture);
 
+// GET /api/instructor/courses/:courseId/student-progress - 수강생 진도 현황
+router.get("/courses/:courseId/student-progress", instructorController.getCourseStudentProgress);
+
 module.exports = router;

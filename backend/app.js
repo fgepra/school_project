@@ -10,6 +10,8 @@ const progressRoutes = require("./routes/progress");
 const adminRoutes = require("./routes/admin");
 const instructorRoutes = require("./routes/instructor");
 const commentRoutes = require("./routes/comments");
+const workoutRoutes = require("./routes/workout");
+const bookmarkRoutes = require("./routes/bookmarks");
 
 const app = express();
 
@@ -26,6 +28,8 @@ app.use("/api/progress", progressRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/instructor", instructorRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/workout", workoutRoutes);
+app.use("/api/bookmarks", bookmarkRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`서버 실행: ${process.env.PORT}`);
