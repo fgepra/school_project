@@ -240,6 +240,26 @@ export default function MotionPage() {
   // exercise 상태를 ref에도 동기화 (onResults 클로저에서 최신 값 참조)
   useEffect(() => { exerciseRef.current = exercise; }, [exercise]);
 
+  // ─── CDN 스크립트 로더 ───────────────────────────────────────
+  const loadMediaPipe = async () => {
+    const scripts = [
+      'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js',
+      'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js',
+    ];
+    for (const src of scripts) {
+      await new Promise<void>((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.crossOrigin = 'anonymous';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`스크립트 로드 실패: ${src}`));
+        document.head.appendChild(s);
+      });
+    }
+  };
+
   // ─── MediaPipe 초기화 ────────────────────────────────────────
   const startCamera = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -247,9 +267,14 @@ export default function MotionPage() {
     setError('');
 
     try {
-      const { Pose, POSE_CONNECTIONS } = await import('@mediapipe/pose');
-      const { Camera }                 = await import('@mediapipe/camera_utils');
-      const { drawConnectors, drawLandmarks } = await import('@mediapipe/drawing_utils');
+      await loadMediaPipe();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = window as any;
+      const Pose = w.Pose;
+      const POSE_CONNECTIONS = w.POSE_CONNECTIONS;
+      const Camera = w.Camera;
+      const drawConnectors = w.drawConnectors;
+      const drawLandmarks = w.drawLandmarks;
 
       const pose = new Pose({
         locateFile: (file: string) =>
