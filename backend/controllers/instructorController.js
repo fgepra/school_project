@@ -130,13 +130,34 @@ exports.getCourseLectures = (req, res) => {
 // 강의 영상 추가
 exports.createLecture = (req, res) => {
   const { courseId } = req.params;
-  const { title, video_url, duration, order_num } = req.body;
+  const { title, description, video_url, duration, order_num } = req.body;
   const instructorId = req.user.id;
   const isAdmin = req.user.role === 'admin';
 
   if (!title) {
     return res.status(400).json({ message: "강의 제목은 필수입니다." });
   }
+
+  const hasUrl  = !!(video_url && video_url.trim());
+  const hasFile = !!(req.file);
+
+  // 둘 다 없으면 거부
+  if (!hasUrl && !hasFile) {
+    return res.status(400).json({
+      message: "영상을 추가해 주세요. YouTube URL 또는 동영상 파일 중 하나를 등록해야 합니다.",
+    });
+  }
+  // 둘 다 있으면 거부
+  if (hasUrl && hasFile) {
+    return res.status(400).json({
+      message: "YouTube URL과 파일 업로드 중 하나만 선택해 주세요.",
+    });
+  }
+
+  // 파일 업로드인 경우 video_url에 서버 경로 사용
+  const finalVideoUrl = hasFile
+    ? `/uploads/videos/${req.file.filename}`
+    : video_url.trim();
 
   // 해당 코스가 본인 것인지 확인
   const checkSql = isAdmin
@@ -150,8 +171,8 @@ exports.createLecture = (req, res) => {
       return res.status(403).json({ message: "해당 강의에 대한 권한이 없습니다." });
     }
 
-    const sql = "INSERT INTO lectures (course_id, title, video_url, duration, order_num) VALUES (?, ?, ?, ?, ?)";
-    db.query(sql, [courseId, title, video_url || '', duration || 0, order_num || 0], (err, result) => {
+    const sql = "INSERT INTO lectures (course_id, title, description, video_url, duration, order_num) VALUES (?, ?, ?, ?, ?, ?)";
+    db.query(sql, [courseId, title, description || null, finalVideoUrl, duration || 0, order_num || 0], (err, result) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.status(201).json({ message: "강의 영상이 추가되었습니다.", lectureId: result.insertId });
     });
@@ -161,14 +182,14 @@ exports.createLecture = (req, res) => {
 // 강의 영상 수정
 exports.updateLecture = (req, res) => {
   const { lectureId } = req.params;
-  const { title, video_url, duration, order_num } = req.body;
+  const { title, description, video_url, duration, order_num } = req.body;
   const instructorId = req.user.id;
   const isAdmin = req.user.role === 'admin';
 
   // 강의 영상이 본인 코스에 속하는지 확인
   const checkSql = isAdmin
-    ? "SELECT l.id FROM lectures l JOIN courses c ON l.course_id = c.id WHERE l.id = ?"
-    : "SELECT l.id FROM lectures l JOIN courses c ON l.course_id = c.id WHERE l.id = ? AND c.instructor_id = ?";
+    ? "SELECT l.id, l.video_url FROM lectures l JOIN courses c ON l.course_id = c.id WHERE l.id = ?"
+    : "SELECT l.id, l.video_url FROM lectures l JOIN courses c ON l.course_id = c.id WHERE l.id = ? AND c.instructor_id = ?";
   const checkParams = isAdmin ? [lectureId] : [lectureId, instructorId];
 
   db.query(checkSql, checkParams, (err, results) => {
@@ -177,10 +198,91 @@ exports.updateLecture = (req, res) => {
       return res.status(403).json({ message: "해당 강의 영상에 대한 권한이 없습니다." });
     }
 
-    const sql = "UPDATE lectures SET title = ?, video_url = ?, duration = ?, order_num = ? WHERE id = ?";
-    db.query(sql, [title, video_url, duration, order_num, lectureId], (err) => {
+    const hasUrl  = !!(video_url && video_url.trim());
+    const hasFile = !!(req.file);
+
+    // 순서 변경 등 video 필드를 건드리지 않는 내부 업데이트인 경우
+    // (video_url이 undefined로 오면 기존 값 유지)
+    const isVideoUpdate = hasUrl || hasFile || (video_url === '' || video_url === null);
+
+    if (isVideoUpdate) {
+      if (!hasUrl && !hasFile) {
+        return res.status(400).json({
+          message: "영상을 추가해 주세요. YouTube URL 또는 동영상 파일 중 하나를 등록해야 합니다.",
+        });
+      }
+      if (hasUrl && hasFile) {
+        return res.status(400).json({
+          message: "YouTube URL과 파일 업로드 중 하나만 선택해 주세요.",
+        });
+      }
+    }
+
+    const finalVideoUrl = hasFile
+      ? `/uploads/videos/${req.file.filename}`
+      : (hasUrl ? video_url.trim() : results[0].video_url);
+
+    const sql = "UPDATE lectures SET title = ?, description = ?, video_url = ?, duration = ?, order_num = ? WHERE id = ?";
+    db.query(sql, [title, description ?? null, finalVideoUrl, duration, order_num, lectureId], (err) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.json({ message: "강의 영상이 수정되었습니다." });
+    });
+  });
+};
+
+// 내 강의에 달린 전체 댓글 + 답글 조회
+exports.getMyComments = (req, res) => {
+  const instructorId = req.user.id;
+  const isAdmin = req.user.role === 'admin';
+
+  // 댓글 목록 (강의·강좌 정보 포함)
+  const commentSql = isAdmin
+    ? `SELECT
+        c.id, c.content, c.created_at, c.lecture_id,
+        cu.id AS user_id, cu.name AS user_name, cu.role AS user_role,
+        l.title AS lecture_title, l.order_num AS lecture_order,
+        co.id AS course_id, co.title AS course_title
+      FROM comments c
+      JOIN users cu  ON c.user_id   = cu.id
+      JOIN lectures l ON c.lecture_id = l.id
+      JOIN courses co ON l.course_id  = co.id
+      ORDER BY c.created_at DESC`
+    : `SELECT
+        c.id, c.content, c.created_at, c.lecture_id,
+        cu.id AS user_id, cu.name AS user_name, cu.role AS user_role,
+        l.title AS lecture_title, l.order_num AS lecture_order,
+        co.id AS course_id, co.title AS course_title
+      FROM comments c
+      JOIN users cu  ON c.user_id   = cu.id
+      JOIN lectures l ON c.lecture_id = l.id
+      JOIN courses co ON l.course_id  = co.id
+      WHERE co.instructor_id = ?
+      ORDER BY c.created_at DESC`;
+
+  const params = isAdmin ? [] : [instructorId];
+
+  db.query(commentSql, params, (err, comments) => {
+    if (err) return res.status(500).json({ message: "서버 오류", error: err });
+    if (comments.length === 0) return res.json([]);
+
+    // 해당 댓글들의 답글 일괄 조회
+    const commentIds = comments.map(c => c.id);
+    const replySql = `
+      SELECT r.id, r.comment_id, r.content, r.created_at,
+             u.id AS user_id, u.name AS user_name, u.role AS user_role
+      FROM replies r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.comment_id IN (?)
+      ORDER BY r.created_at ASC
+    `;
+    db.query(replySql, [commentIds], (err2, replies) => {
+      if (err2) return res.status(500).json({ message: "서버 오류", error: err2 });
+
+      const result = comments.map(c => ({
+        ...c,
+        replies: replies.filter(r => r.comment_id === c.id),
+      }));
+      res.json(result);
     });
   });
 };

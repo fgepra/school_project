@@ -6,6 +6,16 @@ const nextConfig: NextConfig = {
   // Turbopack 설정 (Next.js 16 기본값)
   // MediaPipe는 CDN에서 로드하므로 별도 WASM 번들 설정 불필요
   turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5000',
+        pathname: '/uploads/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

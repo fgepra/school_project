@@ -15,6 +15,9 @@ router.patch('/read-all', auth, ctrl.markAllAsRead);
 // 개별 읽음 처리
 router.patch('/:id/read', auth, ctrl.markAsRead);
 
+// 알림 이동 링크
+router.get('/:id/link', auth, ctrl.getNotificationLink);
+
 // 알림 삭제
 router.delete('/:id', auth, ctrl.deleteNotification);
 

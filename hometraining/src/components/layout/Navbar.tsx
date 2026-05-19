@@ -86,6 +86,7 @@ export default function Navbar() {
       return [
         { href: '/instructor', label: '강사 대시보드' },
         { href: '/instructor/courses', label: '강의 관리' },
+        { href: '/instructor/comments', label: '댓글 관리' },
         { href: '/instructor/settlement', label: '정산 내역' },
         { href: '/courses', label: '강의 목록' },
       ];

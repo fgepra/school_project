@@ -2,9 +2,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { instructorApi } from '@/lib/api';
 import { Course } from '@/types';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+
+const BACKEND_URL = 'http://localhost:5000';
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   beginner: '초급',
@@ -22,6 +26,7 @@ export default function InstructorCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ id: number; title: string } | null>(null);
 
   const fetchCourses = () => {
     instructorApi.getMyCourses()
@@ -32,13 +37,14 @@ export default function InstructorCoursesPage() {
 
   useEffect(() => { fetchCourses(); }, []);
 
-  const handleDelete = async (courseId: number, title: string) => {
-    if (!window.confirm(`"${title}" 강의를 삭제하시겠습니까?\n강의 영상 및 진도 데이터도 모두 삭제됩니다.`)) return;
-
-    setDeletingId(courseId);
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal) return;
+    const { id } = deleteModal;
+    setDeleteModal(null);
+    setDeletingId(id);
     try {
-      await instructorApi.deleteCourse(courseId);
-      setCourses(prev => prev.filter(c => c.id !== courseId));
+      await instructorApi.deleteCourse(id);
+      setCourses(prev => prev.filter(c => c.id !== id));
     } catch (err) {
       alert(err instanceof Error ? err.message : '삭제에 실패했습니다.');
     } finally {
@@ -85,6 +91,15 @@ export default function InstructorCoursesPage() {
           </Link>
         </div>
       ) : (
+        <>
+        <ConfirmModal
+          isOpen={!!deleteModal}
+          title="강의 삭제"
+          message={`"${deleteModal?.title}" 강의를 삭제하시겠습니까?\n강의 영상 및 진도 데이터도 모두 삭제됩니다.`}
+          confirmLabel="삭제"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteModal(null)}
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {courses.map((course) => (
             <div
@@ -98,6 +113,35 @@ export default function InstructorCoursesPage() {
                 opacity: deletingId === course.id ? 0.5 : 1,
               }}
             >
+              {/* 썸네일 */}
+              <div
+                style={{
+                  width: 100,
+                  height: 68,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}
+              >
+                {course.thumbnail ? (
+                  <Image
+                    src={`${BACKEND_URL}${course.thumbnail}`}
+                    alt={course.title}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    unoptimized
+                  />
+                ) : (
+                  <span style={{ fontSize: 28 }}>🎬</span>
+                )}
+              </div>
+
               {/* 강의 정보 */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -159,7 +203,7 @@ export default function InstructorCoursesPage() {
                     cursor: 'pointer',
                   }}
                   disabled={deletingId === course.id}
-                  onClick={() => handleDelete(course.id, course.title)}
+                  onClick={() => setDeleteModal({ id: course.id, title: course.title })}
                 >
                   {deletingId === course.id ? '삭제 중...' : '삭제'}
                 </button>
@@ -167,6 +211,7 @@ export default function InstructorCoursesPage() {
             </div>
           ))}
         </div>
+        </>
       )}
     </div>
   );

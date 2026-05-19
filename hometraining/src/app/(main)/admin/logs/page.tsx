@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { logApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { ActivityLog } from '@/types';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 export default function AdminLogsPage() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function AdminLogsPage() {
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const fetchLogs = (action?: string) => {
     setLoading(true);
@@ -29,7 +31,6 @@ export default function AdminLogsPage() {
   const handleFilter = () => fetchLogs(actionFilter || undefined);
 
   const handleDeleteOld = async () => {
-    if (!window.confirm('30일 이상 된 로그를 삭제하시겠습니까?')) return;
     setDeleting(true);
     try {
       const res = await logApi.deleteOldLogs();
@@ -48,12 +49,20 @@ export default function AdminLogsPage() {
 
   return (
     <div className="fade-in">
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="오래된 로그 삭제"
+        message="30일 이상 된 로그를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다."
+        confirmLabel="삭제"
+        onConfirm={() => { setShowDeleteModal(false); handleDeleteOld(); }}
+        onCancel={() => setShowDeleteModal(false)}
+      />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 700 }}>활동 로그</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: 14 }}>서버 요청 및 사용자 활동 로그를 조회합니다.</p>
         </div>
-        <button onClick={handleDeleteOld} disabled={deleting} style={{ padding: '9px 18px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontFamily: "'Noto Sans KR', sans-serif" }}>
+        <button onClick={() => setShowDeleteModal(true)} disabled={deleting} style={{ padding: '9px 18px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1, fontFamily: "'Noto Sans KR', sans-serif" }}>
           {deleting ? '삭제 중...' : '🗑 30일 이상 삭제'}
         </button>
       </div>

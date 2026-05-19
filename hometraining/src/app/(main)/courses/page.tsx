@@ -265,19 +265,52 @@ export default function CoursesPage() {
                         👤 {course.instructor_name}
                       </div>
                     )}
+
+                    {/* 가격 + 수강 시작 */}
                     <div
                       style={{
                         marginTop: 16,
-                        fontSize: 13,
-                        color: 'var(--accent)',
-                        fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4,
+                        justifyContent: 'space-between',
                       }}
                     >
-                      수강 시작하기
-                      <span style={{ fontSize: 11 }}>→</span>
+                      {/* 가격 뱃지 */}
+                      {(course.price === 0 || course.price === undefined || course.price === null) ? (
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: 'var(--green)',
+                          background: 'rgba(34,197,94,0.12)',
+                          border: '1px solid rgba(34,197,94,0.35)',
+                          borderRadius: 6,
+                          padding: '3px 10px',
+                        }}>
+                          무료
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: 'var(--accent)',
+                        }}>
+                          ₩{(course.price as number).toLocaleString()}
+                        </span>
+                      )}
+
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: 'var(--accent)',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        수강 시작하기
+                        <span style={{ fontSize: 11 }}>→</span>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -72,6 +72,46 @@ exports.deleteNotification = (req, res) => {
   );
 };
 
+// 알림 이동 링크 반환
+// reply 타입: related_id = comment_id → lecture_id → course_id → /courses/:cid/lectures/:lid
+exports.getNotificationLink = (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+
+  db.query(
+    'SELECT type, related_id FROM notifications WHERE id = ? AND user_id = ?',
+    [id, userId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ success: false, message: 'DB 오류' });
+      if (!rows.length) return res.status(404).json({ success: false, message: '알림 없음' });
+
+      const { type, related_id } = rows[0];
+
+      if (type === 'reply' && related_id) {
+        // comment_id → lecture_id, course_id
+        const sql = `
+          SELECT c.lecture_id, l.course_id
+          FROM comments c
+          JOIN lectures l ON c.lecture_id = l.id
+          WHERE c.id = ?
+        `;
+        db.query(sql, [related_id], (err2, result) => {
+          if (err2 || !result.length) {
+            return res.json({ success: false, message: '강의 정보를 찾을 수 없습니다.' });
+          }
+          const { lecture_id, course_id } = result[0];
+          res.json({
+            success: true,
+            data: { path: `/courses/${course_id}/lectures/${lecture_id}` },
+          });
+        });
+      } else {
+        res.json({ success: false, message: '이동할 수 없는 알림입니다.' });
+      }
+    }
+  );
+};
+
 // 알림 생성 헬퍼 (다른 컨트롤러에서 require해서 사용)
 exports.createNotification = (userId, type, title, message, relatedId = null) => {
   const sql = `

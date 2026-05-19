@@ -33,6 +33,7 @@ export interface Lecture {
   id: number;
   course_id: number;
   title: string;
+  description?: string | null;
   video_url: string;
   duration: number; // 초 단위
   order_num?: number;
@@ -72,6 +73,31 @@ export interface StudentProgress {
   completed_count: number;
   total_watched_sec: number;
   last_activity: string | null;
+}
+
+export interface InstructorCommentReply {
+  id: number;
+  comment_id: number;
+  user_id: number;
+  user_name: string;
+  user_role: UserRole;
+  content: string;
+  created_at: string;
+}
+
+export interface InstructorComment {
+  id: number;
+  content: string;
+  created_at: string;
+  lecture_id: number;
+  user_id: number;
+  user_name: string;
+  user_role: UserRole;
+  lecture_title: string;
+  lecture_order: number;
+  course_id: number;
+  course_title: string;
+  replies: InstructorCommentReply[];
 }
 
 export interface Comment {

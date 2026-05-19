@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { instructorApi } from '@/lib/api';
 import { Course } from '@/types';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const BACKEND_URL = 'http://localhost:5000';
 
@@ -32,6 +33,7 @@ export default function AdminCoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
+  const [deleteModal, setDeleteModal] = useState<{ id: number; title: string } | null>(null);
 
   useEffect(() => {
     instructorApi
@@ -41,11 +43,13 @@ export default function AdminCoursesPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const handleDelete = async (courseId: number, title: string) => {
-    if (!window.confirm(`"${title}" 강의를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal) return;
+    const { id } = deleteModal;
+    setDeleteModal(null);
     try {
-      await instructorApi.deleteCourse(courseId);
-      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      await instructorApi.deleteCourse(id);
+      setCourses((prev) => prev.filter((c) => c.id !== id));
     } catch {
       alert('강의 삭제에 실패했습니다.');
     }
@@ -55,6 +59,15 @@ export default function AdminCoursesPage() {
 
   return (
     <div className="fade-in">
+      <ConfirmModal
+        isOpen={!!deleteModal}
+        title="강의 삭제"
+        message={`"${deleteModal?.title}" 강의를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`}
+        confirmLabel="삭제"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteModal(null)}
+      />
+
       {/* 헤더 */}
       <div
         style={{
@@ -236,7 +249,7 @@ export default function AdminCoursesPage() {
 
               {/* 삭제 버튼 */}
               <button
-                onClick={() => handleDelete(course.id, course.title)}
+                onClick={() => setDeleteModal({ id: course.id, title: course.title })}
                 style={{
                   fontSize: 12,
                   padding: '6px 12px',

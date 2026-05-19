@@ -170,17 +170,19 @@ export const instructorApi = {
   getCourseLectures: (courseId: number) =>
     apiFetch<Lecture[]>(`/instructor/courses/${courseId}/lectures`),
 
-  createLecture: (courseId: number, data: LectureCreateRequest) =>
-    apiFetch<{ message: string; lectureId: number }>(
+  createLecture: (courseId: number, formData: FormData) =>
+    apiFetchFormData<{ message: string; lectureId: number }>(
       `/instructor/courses/${courseId}/lectures`,
-      { method: 'POST', body: JSON.stringify(data) }
+      'POST',
+      formData,
     ),
 
-  updateLecture: (lectureId: number, data: Partial<LectureCreateRequest>) =>
-    apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  updateLecture: (lectureId: number, formData: FormData) =>
+    apiFetchFormData<{ message: string }>(
+      `/instructor/lectures/${lectureId}`,
+      'PUT',
+      formData,
+    ),
 
   deleteLecture: (lectureId: number) =>
     apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}`, {
@@ -189,6 +191,9 @@ export const instructorApi = {
 
   getStudentProgress: (courseId: number) =>
     apiFetch<StudentProgress[]>(`/instructor/courses/${courseId}/student-progress`),
+
+  getMyComments: () =>
+    apiFetch<InstructorComment[]>('/instructor/comments'),
 };
 
 // ─── 댓글 API ────────────────────────────────────────────────
@@ -299,6 +304,8 @@ export const notificationApi = {
     apiFetch<{ success: boolean; message: string }>('/notifications/read-all', { method: 'PATCH' }),
   delete: (id: number) =>
     apiFetch<{ success: boolean; message: string }>(`/notifications/${id}`, { method: 'DELETE' }),
+  getLink: (id: number) =>
+    apiFetch<{ success: boolean; data?: { path: string }; message?: string }>(`/notifications/${id}/link`),
 };
 
 // ─── 정산 API ────────────────────────────────────────────────
@@ -306,6 +313,13 @@ export const notificationApi = {
 export const settlementApi = {
   getInstructorSettlement: () =>
     apiFetch<{ success: boolean; data: Settlement[] }>('/settlement/instructor'),
+  getInstructorMonthlyStats: () =>
+    apiFetch<{ success: boolean; data: { month: string; sales_count: number; total_revenue: number; payout_amount: number }[] }>('/settlement/instructor/monthly'),
+  requestSettlement: (period: string) =>
+    apiFetch<{ success: boolean; message: string }>('/settlement/instructor/request', {
+      method: 'POST',
+      body: JSON.stringify({ period }),
+    }),
   getAdminSettlement: () =>
     apiFetch<{ success: boolean; data: Settlement[] }>('/settlement/admin'),
   getAdminStats: (type: 'daily' | 'weekly' | 'monthly' = 'monthly') =>

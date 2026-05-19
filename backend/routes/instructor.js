@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const { requireInstructor } = require("../middleware/roleMiddleware");
 const upload = require("../middleware/upload");
+const videoUpload = require("../middleware/videoUpload");
 const instructorController = require("../controllers/instructorController");
 
 // 모든 강사 라우트는 인증 + 강사/관리자 권한 필요
@@ -26,9 +27,12 @@ router.delete("/courses/:courseId", instructorController.deleteCourse);
 // DELETE /api/instructor/lectures/:lectureId        - 강의 영상 삭제
 
 router.get("/courses/:courseId/lectures", instructorController.getCourseLectures);
-router.post("/courses/:courseId/lectures", instructorController.createLecture);
-router.put("/lectures/:lectureId", instructorController.updateLecture);
+router.post("/courses/:courseId/lectures", videoUpload.single("video_file"), instructorController.createLecture);
+router.put("/lectures/:lectureId", videoUpload.single("video_file"), instructorController.updateLecture);
 router.delete("/lectures/:lectureId", instructorController.deleteLecture);
+
+// GET /api/instructor/comments - 내 강의 전체 댓글 모아보기
+router.get("/comments", instructorController.getMyComments);
 
 // GET /api/instructor/courses/:courseId/student-progress - 수강생 진도 현황
 router.get("/courses/:courseId/student-progress", instructorController.getCourseStudentProgress);

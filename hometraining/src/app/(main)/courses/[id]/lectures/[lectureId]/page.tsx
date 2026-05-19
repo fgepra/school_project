@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { MOCK_LECTURES } from '@/lib/mockData';
 import { Lecture, Comment } from '@/types';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 // ─── 유틸 ────────────────────────────────────────────────────
 function formatTime(totalSec: number): string {
@@ -153,6 +154,8 @@ export default function LectureWatchPage() {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [editCommentLoading, setEditCommentLoading] = useState(false);
+  const [deleteCommentModal, setDeleteCommentModal] = useState<number | null>(null);
+  const [deleteReplyModal, setDeleteReplyModal] = useState<{ commentId: number; replyId: number } | null>(null);
 
   // ─── 모션 캡처 상태 ──────────────────────────────────────────
   const [motionOpen, setMotionOpen] = useState(false);
@@ -301,7 +304,6 @@ export default function LectureWatchPage() {
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
     try {
       await commentApi.delete(commentId);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
@@ -351,7 +353,6 @@ export default function LectureWatchPage() {
   };
 
   const handleDeleteReply = async (commentId: number, replyId: number) => {
-    if (!window.confirm('답글을 삭제하시겠습니까?')) return;
     try {
       await commentApi.deleteReply(replyId);
       setComments((prev) =>
@@ -556,6 +557,23 @@ export default function LectureWatchPage() {
 
   return (
     <div className="fade-in" style={{ maxWidth: '100%' }}>
+      <ConfirmModal
+        isOpen={deleteCommentModal !== null}
+        title="댓글 삭제"
+        message="이 댓글을 삭제하시겠습니까?"
+        confirmLabel="삭제"
+        onConfirm={() => { const id = deleteCommentModal!; setDeleteCommentModal(null); handleDeleteComment(id); }}
+        onCancel={() => setDeleteCommentModal(null)}
+      />
+      <ConfirmModal
+        isOpen={deleteReplyModal !== null}
+        title="답글 삭제"
+        message="이 답글을 삭제하시겠습니까?"
+        confirmLabel="삭제"
+        onConfirm={() => { const m = deleteReplyModal!; setDeleteReplyModal(null); handleDeleteReply(m.commentId, m.replyId); }}
+        onCancel={() => setDeleteReplyModal(null)}
+      />
+
       {/* 뒤로가기 */}
       <Link
         href={`/courses/${courseId}`}
@@ -964,7 +982,7 @@ export default function LectureWatchPage() {
                           )}
                           {(user.id === comment.user_id || user.role === 'admin') && (
                             <button
-                              onClick={() => handleDeleteComment(comment.id)}
+                              onClick={() => setDeleteCommentModal(comment.id)}
                               style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
                             >
                               삭제
@@ -1043,7 +1061,7 @@ export default function LectureWatchPage() {
                               </div>
                               {(user.id === reply.user_id || user.role === 'admin') && (
                                 <button
-                                  onClick={() => handleDeleteReply(comment.id, reply.id)}
+                                  onClick={() => setDeleteReplyModal({ commentId: comment.id, replyId: reply.id })}
                                   style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', padding: '2px 6px', flexShrink: 0 }}
                                 >
                                   삭제

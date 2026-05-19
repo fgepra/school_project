@@ -17,6 +17,84 @@ exports.getInstructorSettlement = (req, res) => {
   });
 };
 
+// 강사 월별 매출 통계 (내 강의 결제 기반)
+exports.getInstructorMonthlyStats = (req, res) => {
+  const instructorId = req.user.id;
+
+  const sql = `
+    SELECT
+      DATE_FORMAT(p.created_at, '%Y-%m') AS month,
+      COUNT(*)                            AS sales_count,
+      SUM(p.amount)                       AS total_revenue,
+      FLOOR(SUM(p.amount) * 0.7)         AS payout_amount
+    FROM payments p
+    JOIN courses c ON p.course_id = c.id
+    WHERE p.status = 'completed'
+      AND c.instructor_id = ?
+    GROUP BY month
+    ORDER BY month DESC
+    LIMIT 12
+  `;
+
+  db.query(sql, [instructorId], (err, results) => {
+    if (err) return res.status(500).json({ success: false, message: 'DB 오류' });
+    res.json({ success: true, data: results });
+  });
+};
+
+// 강사 정산 신청 (특정 월)
+exports.requestSettlement = (req, res) => {
+  const instructorId = req.user.id;
+  const { period } = req.body; // 'YYYY-MM'
+
+  if (!period || !/^\d{4}-\d{2}$/.test(period)) {
+    return res.status(400).json({ success: false, message: '올바른 기간(YYYY-MM)을 입력해 주세요.' });
+  }
+
+  const [year, month] = period.split('-');
+  const startDate = `${year}-${month}-01`;
+  const endDate   = new Date(Number(year), Number(month), 0).toISOString().slice(0, 10);
+
+  // 해당 월 내 강의 매출 집계
+  const sql = `
+    SELECT p.course_id, SUM(p.amount) AS revenue
+    FROM payments p
+    JOIN courses c ON p.course_id = c.id
+    WHERE p.status = 'completed'
+      AND c.instructor_id = ?
+      AND DATE(p.created_at) BETWEEN ? AND ?
+    GROUP BY p.course_id
+  `;
+
+  db.query(sql, [instructorId, startDate, endDate], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: 'DB 오류' });
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: '해당 기간에 정산할 매출이 없습니다.' });
+    }
+
+    const payoutRate = 0.70;
+    let done = 0;
+    rows.forEach((row) => {
+      const payoutAmount = Math.floor(row.revenue * payoutRate);
+      const upsert = `
+        INSERT INTO settlements (instructor_id, course_id, period, revenue, payout_rate, payout_amount, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())
+        ON DUPLICATE KEY UPDATE
+          revenue = VALUES(revenue),
+          payout_amount = VALUES(payout_amount),
+          status = IF(status = 'paid', 'paid', 'pending')
+      `;
+      db.query(upsert, [instructorId, row.course_id, period, row.revenue, payoutRate, payoutAmount], () => {
+        done++;
+      });
+    });
+
+    setTimeout(() => {
+      res.json({ success: true, message: `${period} 정산 신청이 완료됐습니다. (${rows.length}개 강의)` });
+    }, 200);
+  });
+};
+
 // 관리자 전체 정산 내역
 exports.getAdminSettlement = (req, res) => {
   const sql = `

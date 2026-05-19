@@ -127,6 +127,7 @@ exports.createReply = (req, res) => {
         if (err) return res.status(500).json({ message: "서버 오류", error: err });
 
         // 댓글 작성자에게 답글 알림 전송 (본인 답글이 아닐 때만)
+        // related_id = comment_id (lecture/course 역추적에 사용)
         db.query("SELECT user_id FROM comments WHERE id = ?", [commentId], (err2, commentRows) => {
           if (!err2 && commentRows.length > 0 && commentRows[0].user_id !== userId) {
             createNotification(
@@ -134,7 +135,7 @@ exports.createReply = (req, res) => {
               'reply',
               '답글이 달렸습니다',
               `회원님의 댓글에 답글이 달렸습니다: "${content.trim().slice(0, 50)}"`,
-              result.insertId
+              Number(commentId)
             );
           }
         });
