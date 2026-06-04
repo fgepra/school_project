@@ -144,6 +144,10 @@ export default function LectureWatchPage() {
   const [workoutSaving, setWorkoutSaving] = useState(false);
   const [workoutResult, setWorkoutResult] = useState<{ calories: number } | null>(null);
 
+  // 영상 플레이어
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoAutoSaved, setVideoAutoSaved] = useState(false);
+
   // 댓글 상태
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -167,6 +171,8 @@ export default function LectureWatchPage() {
   const [motionFps, setMotionFps] = useState(0);
   const [poseDetected, setPoseDetected] = useState(false);
 
+  const lectureVideoRef = useRef<HTMLVideoElement>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef    = useRef<HTMLVideoElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -240,8 +246,9 @@ export default function LectureWatchPage() {
       setInputError('MM:SS 형식으로 입력해 주세요 (예: 7:30)');
       return;
     }
-    const clampedSec = Math.min(watchedSec, lecture.duration);
-    const completed = lecture.duration > 0 && clampedSec / lecture.duration >= 0.9;
+    const effectiveDuration = videoDuration > 0 ? videoDuration : lecture.duration;
+    const clampedSec = Math.min(watchedSec, effectiveDuration || watchedSec);
+    const completed = effectiveDuration > 0 && clampedSec / effectiveDuration >= 0.9;
     try {
       await saveProgress(lecture.id, clampedSec, completed);
       setIsSaved(true);
@@ -254,9 +261,10 @@ export default function LectureWatchPage() {
 
   const handleMarkComplete = useCallback(async () => {
     if (!lecture) return;
-    setWatchInputStr(formatTime(lecture.duration));
+    const dur = videoDuration > 0 ? videoDuration : lecture.duration;
+    setWatchInputStr(formatTime(dur));
     try {
-      await saveProgress(lecture.id, lecture.duration, true);
+      await saveProgress(lecture.id, dur, true);
       setIsSaved(true);
       setInputError('');
       setTimeout(() => setIsSaved(false), 2500);
@@ -264,6 +272,59 @@ export default function LectureWatchPage() {
       setInputError('저장에 실패했습니다.');
     }
   }, [lecture, saveProgress]);
+
+  // ─── 영상 URL 변환 ──────────────────────────────────────────
+  const getVideoUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace('/api', '');
+    return `${base}${url}`;
+  };
+
+  // ─── 영상 진도 자동 저장 ─────────────────────────────────────
+  const handleVideoProgress = useCallback(async (currentTime: number, duration: number) => {
+    if (!lecture || !user || duration <= 0) return;
+    const completed = currentTime / duration >= 0.9;
+    const sec = Math.floor(currentTime);
+    try {
+      await saveProgress(lecture.id, sec, completed);
+      setWatchInputStr(formatTime(sec));
+      setVideoAutoSaved(true);
+      setTimeout(() => setVideoAutoSaved(false), 2000);
+    } catch { /* silent */ }
+  }, [lecture, user, saveProgress]);
+
+  const handleVideoEnd = useCallback(async (duration: number) => {
+    if (!lecture || !user) return;
+    const sec = Math.floor(duration);
+    try {
+      await saveProgress(lecture.id, sec, true);
+      setWatchInputStr(formatTime(sec));
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch { /* silent */ }
+    if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+  }, [lecture, user, saveProgress]);
+
+  const handleVideoPlay = useCallback(() => {
+    if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setInterval(() => {
+      const video = lectureVideoRef.current;
+      if (video && !video.paused && !video.ended) {
+        handleVideoProgress(video.currentTime, video.duration);
+      }
+    }, 30000);
+  }, [handleVideoProgress]);
+
+  const handleVideoPause = useCallback(() => {
+    if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+    const video = lectureVideoRef.current;
+    if (video) handleVideoProgress(video.currentTime, video.duration);
+  }, [handleVideoProgress]);
+
+  useEffect(() => () => {
+    if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+  }, []);
 
   // ─── 운동 기록 저장 ──────────────────────────────────────────
   const handleSaveWorkout = useCallback(async () => {
@@ -278,7 +339,7 @@ export default function LectureWatchPage() {
       const result = await workoutApi.save({
         lecture_id: lecture.id,
         course_id: Number(courseId),
-        duration_sec: Math.min(watchedSec, lecture.duration),
+        duration_sec: Math.min(watchedSec, videoDuration > 0 ? videoDuration : lecture.duration),
       });
       setWorkoutResult({ calories: result.calories_burned });
     } catch {
@@ -546,7 +607,8 @@ export default function LectureWatchPage() {
   const progress = getProgress(lecture.id);
   const watchedSec = parseMmSs(watchInputStr);
   const savedSec = progress?.watched_time ?? 0;
-  const progressRate = lecture.duration > 0 ? Math.min((savedSec / lecture.duration) * 100, 100) : 0;
+  const effectiveDuration = videoDuration > 0 ? videoDuration : lecture.duration;
+  const progressRate = effectiveDuration > 0 ? Math.min((savedSec / effectiveDuration) * 100, 100) : 0;
   const isCompleted = progress?.completed ?? false;
 
   const overallStatus: 'good' | 'warn' | 'bad' | 'idle' =
@@ -592,7 +654,7 @@ export default function LectureWatchPage() {
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>{lecture.title}</h1>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {currentIndex + 1} / {allLectures.length}강 &nbsp;·&nbsp; 총 영상 시간 {formatTime(lecture.duration)}
+              {currentIndex + 1} / {allLectures.length}강 &nbsp;·&nbsp; {effectiveDuration > 0 ? `총 영상 시간 ${formatTime(effectiveDuration)}` : '영상 시간 로딩 중...'}
               {isCompleted && (
                 <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--green)', background: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: 20 }}>
                   ✅ 수강 완료
@@ -601,14 +663,14 @@ export default function LectureWatchPage() {
             </p>
           </div>
 
-          {/* ② 유튜브 카드 + 모션 캡처 토글 */}
+          {/* ② 영상 플레이어 + 모션 캡처 토글 */}
           <div
             className="card"
             style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}
           >
             {/* 헤더 행: 제목 + 모션 캡처 토글 버튼 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 14, fontWeight: 700 }}>유튜브에서 강의 영상 시청하기</p>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>강의 영상</p>
               <button
                 onClick={handleMotionToggle}
                 style={{
@@ -631,34 +693,31 @@ export default function LectureWatchPage() {
               </button>
             </div>
 
-            {/* 유튜브 링크 버튼 */}
-            <div style={{ textAlign: 'center' }}>
-              {lecture.video_url ? (
-                <a
-                  href={lecture.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '11px 24px', borderRadius: 10, background: '#FF0000',
-                    color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none',
-                    transition: 'opacity 0.15s',
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.opacity = '0.85')}
-                  onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
-                >
-                  <svg width="20" height="14" viewBox="0 0 22 16" fill="none">
-                    <path d="M21.543 2.5A2.75 2.75 0 0019.6.55C17.9 0 11 0 11 0S4.1 0 2.4.55A2.75 2.75 0 00.457 2.5 29 29 0 000 8a29 29 0 00.457 5.5A2.75 2.75 0 002.4 15.45C4.1 16 11 16 11 16s6.9 0 8.6-.55a2.75 2.75 0 001.943-1.95A29 29 0 0022 8a29 29 0 00-.457-5.5z" fill="#fff"/>
-                    <path d="M8.8 11.4V4.6L14.6 8l-5.8 3.4z" fill="#FF0000"/>
-                  </svg>
-                  유튜브에서 영상 보기
-                </a>
-              ) : (
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '10px 20px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'inline-block' }}>
-                  🎬 아직 영상 URL이 등록되지 않은 강의입니다
-                </div>
-              )}
-            </div>
+            {/* 영상 플레이어 */}
+            {lecture.video_url ? (
+              <video
+                ref={lectureVideoRef}
+                src={getVideoUrl(lecture.video_url)}
+                controls
+                controlsList="nodownload"
+                style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 480 }}
+                onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+                onPlay={handleVideoPlay}
+                onPause={handleVideoPause}
+                onEnded={(e) => handleVideoEnd(e.currentTarget.duration)}
+              />
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '40px 20px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                🎬 아직 영상이 등록되지 않은 강의입니다
+              </div>
+            )}
+
+            {/* 자동 저장 안내 */}
+            {lecture.video_url && (
+              <p style={{ fontSize: 11, color: videoAutoSaved ? '#22c55e' : 'var(--text-secondary)', transition: 'color 0.3s' }}>
+                {videoAutoSaved ? '✓ 진도가 자동 저장됐습니다' : '💡 영상을 일시정지하거나 종료하면 진도가 자동으로 저장됩니다.'}
+              </p>
+            )}
 
             {/* 모션 캡처 패널 */}
             {motionOpen && (
@@ -807,10 +866,10 @@ export default function LectureWatchPage() {
 
           {/* ③ 시청 시간 입력 + 운동 기록 카드 */}
           <div className="card" style={{ padding: '24px 28px' }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>📝 시청 시간 기록</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>📝 시청 진도</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.6 }}>
-              유튜브에서 영상을 시청한 후, 시청한 위치(분:초)를 입력해 진도를 기록하세요.<br />
-              전체 시청했다면 <strong>수강 완료</strong> 버튼을 눌러 주세요.
+              영상을 일시정지하거나 끝까지 시청하면 진도가 자동으로 저장됩니다.<br />
+              직접 수정하거나 <strong>수강 완료</strong> 버튼으로 완료 처리할 수도 있습니다.
             </p>
 
             {/* 진도 바 */}
@@ -818,8 +877,8 @@ export default function LectureWatchPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>현재 저장된 진도</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: isCompleted ? 'var(--green)' : 'var(--text-primary)' }}>
-                  {formatTime(savedSec)} / {formatTime(lecture.duration)}
-                  {isCompleted ? ' — 완료' : ` (${Math.round(progressRate)}%)`}
+                  {formatTime(savedSec)} / {effectiveDuration > 0 ? formatTime(effectiveDuration) : '—'}
+                  {isCompleted ? ' — 완료' : effectiveDuration > 0 ? ` (${Math.round(progressRate)}%)` : ''}
                 </span>
               </div>
               <div className="progress-bar">
