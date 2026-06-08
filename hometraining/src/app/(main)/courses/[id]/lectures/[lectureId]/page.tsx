@@ -274,6 +274,22 @@ export default function LectureWatchPage() {
   }, [lecture, saveProgress]);
 
   // ─── 영상 URL 변환 ──────────────────────────────────────────
+  const getYoutubeEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    // youtu.be/VIDEO_ID
+    const shortMatch = url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+    if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+    // youtube.com/watch?v=VIDEO_ID
+    const longMatch = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    if (longMatch) return `https://www.youtube.com/embed/${longMatch[1]}`;
+    // youtube.com/embed/VIDEO_ID (이미 embed URL)
+    if (url.includes('youtube.com/embed/')) return url;
+    return null;
+  };
+
+  const isYoutubeUrl = (url: string) =>
+    url.includes('youtube.com') || url.includes('youtu.be');
+
   const getVideoUrl = (url: string) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
@@ -695,27 +711,47 @@ export default function LectureWatchPage() {
 
             {/* 영상 플레이어 */}
             {lecture.video_url ? (
-              <video
-                ref={lectureVideoRef}
-                src={getVideoUrl(lecture.video_url)}
-                controls
-                controlsList="nodownload"
-                style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 480 }}
-                onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
-                onPlay={handleVideoPlay}
-                onPause={handleVideoPause}
-                onEnded={(e) => handleVideoEnd(e.currentTarget.duration)}
-              />
+              isYoutubeUrl(lecture.video_url) ? (
+                /* 유튜브 iframe 임베드 */
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
+                  <iframe
+                    src={getYoutubeEmbedUrl(lecture.video_url) ?? ''}
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={lecture.title}
+                  />
+                </div>
+              ) : (
+                /* 직접 업로드 영상 */
+                <video
+                  ref={lectureVideoRef}
+                  src={getVideoUrl(lecture.video_url)}
+                  controls
+                  controlsList="nodownload"
+                  style={{ width: '100%', borderRadius: 10, background: '#000', maxHeight: 480 }}
+                  onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+                  onPlay={handleVideoPlay}
+                  onPause={handleVideoPause}
+                  onEnded={(e) => handleVideoEnd(e.currentTarget.duration)}
+                />
+              )
             ) : (
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '40px 20px', borderRadius: 10, background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
                 🎬 아직 영상이 등록되지 않은 강의입니다
               </div>
             )}
 
-            {/* 자동 저장 안내 */}
-            {lecture.video_url && (
+            {/* 자동 저장 안내 (업로드 영상만) */}
+            {lecture.video_url && !isYoutubeUrl(lecture.video_url) && (
               <p style={{ fontSize: 11, color: videoAutoSaved ? '#22c55e' : 'var(--text-secondary)', transition: 'color 0.3s' }}>
                 {videoAutoSaved ? '✓ 진도가 자동 저장됐습니다' : '💡 영상을 일시정지하거나 종료하면 진도가 자동으로 저장됩니다.'}
+              </p>
+            )}
+            {/* 유튜브 영상은 수동 진도 입력 안내 */}
+            {lecture.video_url && isYoutubeUrl(lecture.video_url) && (
+              <p style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                💡 영상을 모두 시청한 후 아래에서 <strong>수강 완료로 표시</strong> 버튼을 눌러 진도를 기록하세요.
               </p>
             )}
 
