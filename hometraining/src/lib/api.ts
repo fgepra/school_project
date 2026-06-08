@@ -28,8 +28,8 @@ import {
   ActivityLog,
 } from '@/types';
 
-// 🔥 Express 서버 주소로 변경
-const BASE_URL = 'http://localhost:5000/api';
+// 🔥 Express 서버 주소 (환경변수 우선, 없으면 localhost)
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // 저장된 토큰 가져오기
 function getToken(): string | null {
@@ -116,7 +116,7 @@ export const courseApi = {
 // ─── 강의 영상 API ───────────────────────────────────────────
 
 export const lectureApi = {
-  getById: (id: number) => apiFetch<Lecture>(`/lectures/${id}`),
+  getById: (id: number) => apiFetch<Lecture>(`/lectures/id/${id}`),
 };
 
 // ─── 진도 API ────────────────────────────────────────────────
