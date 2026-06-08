@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { courseApi } from '@/lib/api';
@@ -94,7 +95,11 @@ export default function CompletedPage() {
             };
 
             return (
-              <div key={course.id} className="card" style={{ padding: 24 }}>
+              <Link key={course.id} href={`/courses/${course.id}`} style={{ textDecoration: 'none' }}>
+              <div className="card" style={{ padding: 24, cursor: 'pointer', transition: 'opacity 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <span className={`badge ${difficultyClass[course.difficulty] ?? 'badge-beginner'}`}>
                     {difficultyLabel[course.difficulty] ?? course.difficulty}
@@ -138,6 +143,7 @@ export default function CompletedPage() {
                   />
                 </div>
               </div>
+              </Link>
             );
           })}
         </div>
