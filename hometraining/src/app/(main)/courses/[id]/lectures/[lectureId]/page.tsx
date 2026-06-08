@@ -246,8 +246,9 @@ export default function LectureWatchPage() {
       setInputError('MM:SS 형식으로 입력해 주세요 (예: 7:30)');
       return;
     }
-    const effectiveDuration = videoDuration > 0 ? videoDuration : lecture.duration;
-    const clampedSec = Math.min(watchedSec, effectiveDuration || watchedSec);
+    const lecDur = Number((lecture as any).duration_sec ?? lecture.duration ?? 0);
+    const effectiveDuration = videoDuration > 0 ? Math.floor(videoDuration) : (isFinite(lecDur) ? lecDur : 0);
+    const clampedSec = effectiveDuration > 0 ? Math.min(watchedSec, effectiveDuration) : watchedSec;
     const completed = effectiveDuration > 0 && clampedSec / effectiveDuration >= 0.9;
     try {
       await saveProgress(lecture.id, clampedSec, completed);
@@ -261,8 +262,9 @@ export default function LectureWatchPage() {
 
   const handleMarkComplete = useCallback(async () => {
     if (!lecture) return;
-    const dur = videoDuration > 0 ? videoDuration : lecture.duration;
-    setWatchInputStr(formatTime(dur));
+    const lecDur = Number((lecture as any).duration_sec ?? lecture.duration ?? 0);
+    const dur = videoDuration > 0 ? Math.floor(videoDuration) : (isFinite(lecDur) ? lecDur : 0);
+    setWatchInputStr(dur > 0 ? formatTime(dur) : '0:00');
     try {
       await saveProgress(lecture.id, dur, true);
       setIsSaved(true);
@@ -623,7 +625,9 @@ export default function LectureWatchPage() {
   const progress = getProgress(lecture.id);
   const watchedSec = parseMmSs(watchInputStr);
   const savedSec = progress?.watched_time ?? 0;
-  const effectiveDuration = videoDuration > 0 ? videoDuration : lecture.duration;
+  // duration_sec(백엔드) 또는 duration(프론트 타입) 둘 다 안전하게 처리
+  const lectureDuration = Number((lecture as any).duration_sec ?? lecture.duration ?? 0);
+  const effectiveDuration = videoDuration > 0 ? Math.floor(videoDuration) : (isFinite(lectureDuration) ? lectureDuration : 0);
   const progressRate = effectiveDuration > 0 ? Math.min((savedSec / effectiveDuration) * 100, 100) : 0;
   const isCompleted = progress?.completed ?? false;
 
@@ -931,7 +935,7 @@ export default function LectureWatchPage() {
                 <input
                   className="input-field"
                   type="text"
-                  placeholder={`예: 4:30 (최대 ${formatTime(lecture.duration)})`}
+                  placeholder={effectiveDuration > 0 ? `예: 4:30 (최대 ${formatTime(effectiveDuration)})` : '예: 4:30'}
                   value={watchInputStr}
                   onChange={(e) => { setWatchInputStr(e.target.value); setInputError(''); setIsSaved(false); setWorkoutResult(null); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
