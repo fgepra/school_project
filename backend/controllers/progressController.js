@@ -43,7 +43,7 @@ exports.getProgressByUser = (req, res) => {
   const sql = `
     SELECT p.id, p.user_id, p.lecture_id, p.watched_time, p.completed, p.updated_at, l.title
     FROM progress p
-    JOIN lectures l ON p.lecture_id = l.id
+    LEFT JOIN lectures l ON p.lecture_id = l.id
     WHERE p.user_id = ?
   `;
 
