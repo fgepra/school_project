@@ -3,8 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { courseApi, bookmarkApi } from '@/lib/api';
+import { useParams, useRouter } from 'next/navigation';
+import { courseApi, bookmarkApi, paymentApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgress } from '@/hooks/useProgress';
 import { MOCK_COURSES, MOCK_LECTURES } from '@/lib/mockData';
@@ -31,17 +31,20 @@ function formatDuration(sec: number): string {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const router = useRouter();
   const { getProgress, getCompletionRate } = useProgress(user?.id ?? null);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bookmarked, setBookmarked] = useState(false);
+  const [purchased, setPurchased] = useState(false);
 
   useEffect(() => {
     const courseId = Number(id);
     if (user) {
       bookmarkApi.check(courseId).then((res) => setBookmarked(res.bookmarked)).catch(() => {});
+      paymentApi.checkPurchase(courseId).then((res) => setPurchased(res.data?.purchased ?? false)).catch(() => {});
     }
     Promise.all([courseApi.getById(courseId), courseApi.getLectures(courseId)])
       .then(([c, l]) => {
@@ -134,7 +137,7 @@ export default function CourseDetailPage() {
           </div>
         </div>
 
-        {/* MET 정보 + 북마크 버튼 */}
+        {/* MET 정보 + 북마크 버튼 + 결제 */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
           <button
             onClick={handleToggleBookmark}
@@ -152,6 +155,31 @@ export default function CourseDetailPage() {
           >
             {bookmarked ? '★' : '☆'}
           </button>
+
+          {/* 결제 버튼 (유료 강의만) */}
+          {(course as any).price > 0 && (
+            <div style={{ textAlign: 'center' }}>
+              {purchased ? (
+                <div style={{
+                  padding: '8px 16px', borderRadius: 8, background: 'rgba(34,197,94,0.1)',
+                  border: '1px solid var(--green)', color: 'var(--green)', fontSize: 13, fontWeight: 700,
+                }}>구매 완료</div>
+              ) : user ? (
+                <button
+                  className="btn-primary"
+                  onClick={() => router.push(`/payment/${id}`)}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  ₩{Number((course as any).price).toLocaleString()} 구매하기
+                </button>
+              ) : (
+                <button className="btn-secondary" onClick={() => router.push('/login')} style={{ fontSize: 13 }}>
+                  로그인 후 구매
+                </button>
+              )}
+            </div>
+          )}
+
           <div
             style={{
               background: 'var(--bg-elevated)',

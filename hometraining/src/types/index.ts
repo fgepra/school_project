@@ -166,3 +166,108 @@ export interface AdminStats {
 export interface BookmarkedCourse extends Course {
   bookmark_id: number;
 }
+
+// ─── 결제 타입 ──────────────────────────────────────────────
+
+export interface Payment {
+  id: number;
+  user_id: number;
+  course_id: number;
+  amount: number;
+  status: 'pending' | 'completed' | 'refunded';
+  payment_method: string;
+  card_last4: string;
+  created_at: string;
+  course_title?: string;
+  difficulty?: string;
+  user_name?: string;
+  email?: string;
+}
+
+export interface PaymentRequest {
+  courseId: number;
+  amount: number;
+  paymentMethod: string;
+  cardLast4: string;
+}
+
+// ─── 알림 타입 ──────────────────────────────────────────────
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  type: 'payment' | 'course_update' | 'progress' | 'system';
+  title: string;
+  message: string;
+  is_read: 0 | 1;
+  related_id: number | null;
+  created_at: string;
+}
+
+// ─── 정산 타입 ──────────────────────────────────────────────
+
+export interface Settlement {
+  id: number;
+  instructor_id: number;
+  course_id: number;
+  period: string;
+  revenue: number;
+  payout_rate: number;
+  payout_amount: number;
+  status: 'pending' | 'paid';
+  created_at: string;
+  course_title?: string;
+  instructor_name?: string;
+}
+
+// ─── 모니터링 타입 ──────────────────────────────────────────
+
+export interface HealthStatus {
+  status: 'ok' | 'degraded';
+  db: 'connected' | 'disconnected';
+  uptime: number;
+  nodeVersion: string;
+  memory: { rss: number; heapUsed: number; heapTotal: number };
+  timestamp: string;
+}
+
+export interface MonitorStats {
+  totalRequests: number;
+  errorCount: number;
+  errorRate: number;
+  avgResponseTime: number;
+  uptimeSeconds: number;
+  recentRequests: {
+    method: string;
+    path: string;
+    status: number;
+    duration: number;
+    timestamp: string;
+  }[];
+}
+
+// ─── 활동 로그 타입 ─────────────────────────────────────────
+
+export interface ActivityLog {
+  id: number;
+  user_id: number | null;
+  action: string;
+  detail: string | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
+// ─── 구독 타입 ──────────────────────────────────────────────
+
+export interface Subscription {
+  id: number;
+  user_id: number;
+  type: 'weekly_digest' | 'course_update' | 'promotion';
+  is_active: 0 | 1;
+  created_at: string;
+}
+
+// 강사 댓글 타입 (instructorApi 에서 사용)
+export interface InstructorComment extends Comment {
+  course_title?: string;
+}
