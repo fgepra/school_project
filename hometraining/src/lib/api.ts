@@ -270,22 +270,22 @@ export const paymentApi = {
       body: JSON.stringify(data),
     }),
   getMyPayments: () =>
-    apiFetch<{ data: unknown[] }>('/payments/my'),
+    apiFetch<{ data: any[] }>('/payments/my'),
   refund: (paymentId: number) =>
     apiFetch<{ message: string }>(`/payments/${paymentId}/refund`, {
       method: 'POST',
     }),
   checkPurchase: (courseId: number) =>
-    apiFetch<{ data: { purchased: boolean } }>(`/payments/check/${courseId}`),
+    apiFetch<{ data: any }>(`/payments/check/${courseId}`),
 };
 
 // ─── 알림 API ────────────────────────────────────────────────
 
 export const notificationApi = {
   getAll: () =>
-    apiFetch<{ data: unknown[] }>('/notifications'),
+    apiFetch<{ data: any[] }>('/notifications'),
   getUnreadCount: () =>
-    apiFetch<{ data: { count: number } }>('/notifications/unread-count'),
+    apiFetch<{ data: any }>('/notifications/unread-count'),
   markAsRead: (id: number) =>
     apiFetch<{ message: string }>(`/notifications/${id}/read`, {
       method: 'PATCH',
@@ -305,7 +305,7 @@ export const notificationApi = {
 export const logApi = {
   getLogs: (params?: { action?: string }) => {
     const query = params?.action ? `?action=${encodeURIComponent(params.action)}` : '';
-    return apiFetch<{ data: unknown[] }>(`/logs${query}`);
+    return apiFetch<{ data: any[] }>(`/logs${query}`);
   },
   deleteOldLogs: () =>
     apiFetch<{ message: string }>('/logs/old', {
@@ -317,23 +317,23 @@ export const logApi = {
 
 export const monitorApi = {
   health: () =>
-    apiFetch<{ data: unknown }>('/monitor/health'),
+    apiFetch<{ data: any }>('/monitor/health'),
   getStats: () =>
-    apiFetch<{ data: unknown }>('/monitor/stats'),
+    apiFetch<{ data: any }>('/monitor/stats'),
 };
 
 // ─── 정산 API ────────────────────────────────────────────────
 
 export const settlementApi = {
   getInstructorSettlement: () =>
-    apiFetch<{ data: unknown[] }>('/settlement/instructor'),
+    apiFetch<{ data: any[] }>('/settlement/instructor'),
   getInstructorMonthlyStats: () =>
-    apiFetch<{ data: unknown }>('/settlement/instructor/monthly'),
+    apiFetch<{ data: any }>('/settlement/instructor/monthly'),
   getAdminSettlement: () =>
-    apiFetch<{ data: unknown[] }>('/settlement/admin'),
+    apiFetch<{ data: any[] }>('/settlement/admin'),
   getAdminStats: (statsType?: string) => {
     const query = statsType ? `?type=${encodeURIComponent(statsType)}` : '';
-    return apiFetch<{ data: unknown }>(`/settlement/admin/stats${query}`);
+    return apiFetch<{ data: any }>(`/settlement/admin/stats${query}`);
   },
   generateSettlement: (period: string) =>
     apiFetch<{ message: string }>('/settlement/admin/generate', {
