@@ -7,10 +7,11 @@ import { Lecture } from '@/types';
 // GET /api/lectures/:id - 개별 강의 영상 조회
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const lectureId = Number(params.id);
+    const { id } = await params;
+    const lectureId = Number(id);
 
     if (isNaN(lectureId)) {
       return NextResponse.json(

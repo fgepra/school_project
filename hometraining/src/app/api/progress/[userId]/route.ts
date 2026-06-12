@@ -8,7 +8,7 @@ import { Progress } from '@/types';
 // GET /api/progress/:userId - 사용자 진도 조회
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const user = requireAuth(req);
@@ -19,7 +19,8 @@ export async function GET(
       );
     }
 
-    const userId = Number(params.userId);
+    const { userId: userIdStr } = await params;
+    const userId = Number(userIdStr);
 
     // 본인 진도만 조회 가능
     if (user.userId !== userId) {
