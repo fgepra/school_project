@@ -260,3 +260,85 @@ export const profileApi = {
       body: JSON.stringify({ password }),
     }),
 };
+
+// ─── 결제 API ────────────────────────────────────────────────
+
+export const paymentApi = {
+  process: (data: { course_id: number; payment_method: string; amount: number }) =>
+    apiFetch<{ message: string; paymentId: number }>('/payments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getMyPayments: () =>
+    apiFetch<{ data: unknown[] }>('/payments/my'),
+  refund: (paymentId: number) =>
+    apiFetch<{ message: string }>(`/payments/${paymentId}/refund`, {
+      method: 'POST',
+    }),
+  checkPurchase: (courseId: number) =>
+    apiFetch<{ data: { purchased: boolean } }>(`/payments/check/${courseId}`),
+};
+
+// ─── 알림 API ────────────────────────────────────────────────
+
+export const notificationApi = {
+  getAll: () =>
+    apiFetch<{ data: unknown[] }>('/notifications'),
+  getUnreadCount: () =>
+    apiFetch<{ data: { count: number } }>('/notifications/unread-count'),
+  markAsRead: (id: number) =>
+    apiFetch<{ message: string }>(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    }),
+  markAllAsRead: () =>
+    apiFetch<{ message: string }>('/notifications/read-all', {
+      method: 'PATCH',
+    }),
+  delete: (id: number) =>
+    apiFetch<{ message: string }>(`/notifications/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ─── 로그 API ────────────────────────────────────────────────
+
+export const logApi = {
+  getLogs: (params?: { action?: string }) => {
+    const query = params?.action ? `?action=${encodeURIComponent(params.action)}` : '';
+    return apiFetch<{ data: unknown[] }>(`/logs${query}`);
+  },
+  deleteOldLogs: () =>
+    apiFetch<{ message: string }>('/logs/old', {
+      method: 'DELETE',
+    }),
+};
+
+// ─── 모니터 API ──────────────────────────────────────────────
+
+export const monitorApi = {
+  health: () =>
+    apiFetch<{ data: unknown }>('/monitor/health'),
+  getStats: () =>
+    apiFetch<{ data: unknown }>('/monitor/stats'),
+};
+
+// ─── 정산 API ────────────────────────────────────────────────
+
+export const settlementApi = {
+  getInstructorSettlement: () =>
+    apiFetch<{ data: unknown[] }>('/settlement/instructor'),
+  getInstructorMonthlyStats: () =>
+    apiFetch<{ data: unknown }>('/settlement/instructor/monthly'),
+  getAdminSettlement: () =>
+    apiFetch<{ data: unknown[] }>('/settlement/admin'),
+  getAdminStats: (statsType?: string) => {
+    const query = statsType ? `?type=${encodeURIComponent(statsType)}` : '';
+    return apiFetch<{ data: unknown }>(`/settlement/admin/stats${query}`);
+  },
+  generateSettlement: (period: string) =>
+    apiFetch<{ message: string }>('/settlement/admin/generate', {
+      method: 'POST',
+      body: JSON.stringify({ period }),
+    }),
+  exportCSV: () => `${BASE_URL}/settlement/admin/export`,
+};
