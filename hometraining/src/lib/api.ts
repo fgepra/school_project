@@ -308,7 +308,7 @@ export const logApi = {
     return apiFetch<{ data: any[] }>(`/logs${query}`);
   },
   deleteOldLogs: () =>
-    apiFetch<{ message: string }>('/logs/old', {
+    apiFetch<{ message: string; data?: { deleted: number } }>('/logs/old', {
       method: 'DELETE',
     }),
 };
