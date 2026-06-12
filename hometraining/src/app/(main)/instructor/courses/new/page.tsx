@@ -15,6 +15,7 @@ export default function NewCoursePage() {
     description: '',
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
     met_value: '3.0',
+    price: '0',
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -57,6 +58,7 @@ export default function NewCoursePage() {
       formData.append('description', form.description);
       formData.append('difficulty', form.difficulty);
       formData.append('met_value', form.met_value);
+      formData.append('price', form.price);
       if (thumbnailFile) {
         formData.append('thumbnail', thumbnailFile);
       }
@@ -175,6 +177,22 @@ export default function NewCoursePage() {
               placeholder="3.0"
               value={form.met_value}
               onChange={(e) => setForm({ ...form, met_value: e.target.value })}
+            />
+          </div>
+
+          {/* 가격 */}
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+              가격 (원) — 0이면 무료
+            </label>
+            <input
+              className="input-field"
+              type="number"
+              min="0"
+              step="100"
+              placeholder="0"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
           </div>
 

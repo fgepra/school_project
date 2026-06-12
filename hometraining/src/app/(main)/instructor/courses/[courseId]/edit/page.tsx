@@ -19,6 +19,7 @@ export default function EditCoursePage() {
     description: '',
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
     met_value: '3.0',
+    price: '0',
   });
   // 기존 서버에 저장된 썸네일 경로 (e.g. "/uploads/thumbnails/xxx.jpg")
   const [existingThumbnail, setExistingThumbnail] = useState<string>('');
@@ -39,6 +40,7 @@ export default function EditCoursePage() {
           description: course.description,
           difficulty: course.difficulty,
           met_value: String(course.met_value),
+          price: String((course as any).price ?? 0),
         });
         if (course.thumbnail) {
           setExistingThumbnail(course.thumbnail);
@@ -82,6 +84,7 @@ export default function EditCoursePage() {
       formData.append('description', form.description);
       formData.append('difficulty', form.difficulty);
       formData.append('met_value', form.met_value);
+      formData.append('price', form.price);
       if (thumbnailFile) {
         formData.append('thumbnail', thumbnailFile);
       }
@@ -184,6 +187,22 @@ export default function EditCoursePage() {
           <div>
             <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>MET 값</label>
             <input className="input-field" type="number" step="0.1" min="1" max="20" value={form.met_value} onChange={(e) => setForm({ ...form, met_value: e.target.value })} />
+          </div>
+
+          {/* 가격 */}
+          <div>
+            <label style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+              가격 (원) — 0이면 무료
+            </label>
+            <input
+              className="input-field"
+              type="number"
+              min="0"
+              step="100"
+              placeholder="0"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+            />
           </div>
 
           {/* 썸네일 이미지 */}
