@@ -225,6 +225,37 @@ exports.getCourseStudentProgress = (req, res) => {
   });
 };
 
+// 강사 자신의 강의에 달린 댓글 목록 조회
+exports.getMyComments = (req, res) => {
+  const instructorId = req.user.id;
+  const isAdmin = req.user.role === 'admin';
+
+  const sql = isAdmin
+    ? `SELECT c.id, c.user_id, c.lecture_id, c.content, c.created_at,
+              u.name AS user_name, u.role AS user_role,
+              l.title AS lecture_title, co.title AS course_title
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       JOIN lectures l ON c.lecture_id = l.id
+       JOIN courses co ON l.course_id = co.id
+       ORDER BY c.created_at DESC`
+    : `SELECT c.id, c.user_id, c.lecture_id, c.content, c.created_at,
+              u.name AS user_name, u.role AS user_role,
+              l.title AS lecture_title, co.title AS course_title
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       JOIN lectures l ON c.lecture_id = l.id
+       JOIN courses co ON l.course_id = co.id
+       WHERE co.instructor_id = ?
+       ORDER BY c.created_at DESC`;
+
+  const params = isAdmin ? [] : [instructorId];
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json({ message: "서버 오류", error: err });
+    res.json(results);
+  });
+};
+
 // 강의 영상 삭제
 exports.deleteLecture = (req, res) => {
   const { lectureId } = req.params;

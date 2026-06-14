@@ -33,4 +33,7 @@ router.delete("/lectures/:lectureId", instructorController.deleteLecture);
 // GET /api/instructor/courses/:courseId/student-progress - 수강생 진도 현황
 router.get("/courses/:courseId/student-progress", instructorController.getCourseStudentProgress);
 
+// GET /api/instructor/comments - 내 강의에 달린 댓글 목록
+router.get("/comments", instructorController.getMyComments);
+
 module.exports = router;

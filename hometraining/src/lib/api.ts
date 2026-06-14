@@ -182,6 +182,9 @@ export const instructorApi = {
 
   getStudentProgress: (courseId: number) =>
     apiFetch<StudentProgress[]>(`/instructor/courses/${courseId}/student-progress`),
+
+  getMyComments: () =>
+    apiFetch<any[]>('/instructor/comments'),
 };
 
 // ─── 댓글 API ────────────────────────────────────────────────
