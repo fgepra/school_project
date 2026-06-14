@@ -264,7 +264,7 @@ export const profileApi = {
 // ─── 결제 API ────────────────────────────────────────────────
 
 export const paymentApi = {
-  process: (data: { course_id: number; payment_method: string; amount: number }) =>
+  process: (data: any) =>
     apiFetch<{ message: string; paymentId: number }>('/payments', {
       method: 'POST',
       body: JSON.stringify(data),
