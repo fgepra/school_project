@@ -269,6 +269,7 @@ export interface Subscription {
 
 // 강사 댓글 타입 (instructorApi 에서 사용)
 export interface InstructorComment extends Comment {
+  user_name: string;
   course_title?: string;
   course_id?: number;
   lecture_title?: string;
