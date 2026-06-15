@@ -92,8 +92,8 @@ export interface Reply {
   content: string;
   created_at: string;
   // JOIN 결과 추가 필드
-  user_name?: string;
-  user_role?: UserRole;
+  user_name: string;
+  user_role: UserRole;
 }
 
 // ─── API 요청/응답 타입 ─────────────────────────────────────
@@ -270,8 +270,10 @@ export interface Subscription {
 // 강사 댓글 타입 (instructorApi 에서 사용)
 export interface InstructorComment extends Comment {
   user_name: string;
+  user_role: UserRole;
   replies: Reply[];
   course_title: string;
   course_id: number;
   lecture_title: string;
+  lecture_order: number;
 }

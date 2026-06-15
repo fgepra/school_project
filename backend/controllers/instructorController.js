@@ -233,7 +233,8 @@ exports.getMyComments = (req, res) => {
   const sql = isAdmin
     ? `SELECT c.id, c.user_id, c.lecture_id, c.content, c.created_at,
               u.name AS user_name, u.role AS user_role,
-              l.title AS lecture_title, co.title AS course_title
+              l.title AS lecture_title, l.order_num AS lecture_order,
+              co.id AS course_id, co.title AS course_title
        FROM comments c
        JOIN users u ON c.user_id = u.id
        JOIN lectures l ON c.lecture_id = l.id
@@ -241,7 +242,8 @@ exports.getMyComments = (req, res) => {
        ORDER BY c.created_at DESC`
     : `SELECT c.id, c.user_id, c.lecture_id, c.content, c.created_at,
               u.name AS user_name, u.role AS user_role,
-              l.title AS lecture_title, co.title AS course_title
+              l.title AS lecture_title, l.order_num AS lecture_order,
+              co.id AS course_id, co.title AS course_title
        FROM comments c
        JOIN users u ON c.user_id = u.id
        JOIN lectures l ON c.lecture_id = l.id
