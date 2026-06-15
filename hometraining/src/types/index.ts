@@ -151,7 +151,7 @@ export interface JwtPayload {
   id?: number;
   userId?: number;
   email?: string;
-  role: UserRole;
+  role?: UserRole;
   iat?: number;
   exp?: number;
 }
