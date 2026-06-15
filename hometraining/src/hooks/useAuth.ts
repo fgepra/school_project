@@ -12,6 +12,21 @@ interface AuthState {
   isLoading: boolean;
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.exp) return false;
+    return Date.now() / 1000 > payload.exp;
+  } catch {
+    return true;
+  }
+}
+
+function clearAuth() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+}
+
 export function useAuth() {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({
@@ -20,24 +35,46 @@ export function useAuth() {
     isLoading: true,
   });
 
-  // 초기화: localStorage에서 인증 정보 복원
+  const logout = useCallback(() => {
+    clearAuth();
+    setState({ user: null, token: null, isLoading: false });
+    router.push('/login');
+  }, [router]);
+
+  // 초기화: localStorage에서 인증 정보 복원, 만료 토큰 즉시 제거
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
     if (token && userStr) {
+      if (isTokenExpired(token)) {
+        clearAuth();
+        setState({ user: null, token: null, isLoading: false });
+        router.push('/login');
+        return;
+      }
       try {
         const user = JSON.parse(userStr);
         setState({ user, token, isLoading: false });
       } catch {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearAuth();
         setState({ user: null, token: null, isLoading: false });
       }
     } else {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
   }, []);
+
+  // 1분마다 토큰 만료 체크
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const token = localStorage.getItem('token');
+      if (token && isTokenExpired(token)) {
+        logout();
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [logout]);
 
   // 역할별 기본 경로
   const getDefaultPath = (role: UserRole): string => {
@@ -63,13 +100,6 @@ export function useAuth() {
     setState({ user: result.user, token: result.token, isLoading: false });
     return result;
   }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setState({ user: null, token: null, isLoading: false });
-    router.push('/login');
-  }, [router]);
 
   const role: UserRole = state.user?.role ?? 'student';
   const isAdmin = role === 'admin';

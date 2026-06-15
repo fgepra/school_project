@@ -30,6 +30,14 @@ function getToken(): string | null {
   return localStorage.getItem('token');
 }
 
+// 401 응답 시 로컬 인증 정보 제거 후 로그인 페이지로 이동
+function handleUnauthorized() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+}
+
 // 공통 fetch 래퍼
 async function apiFetch<T>(
   endpoint: string,
@@ -49,6 +57,10 @@ async function apiFetch<T>(
   });
 
   const json = await res.json();
+
+  if (res.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!res.ok) {
     throw new Error(json.message || '요청 실패');
@@ -73,6 +85,10 @@ async function apiFetchFormData<T>(
   });
 
   const json = await res.json();
+
+  if (res.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!res.ok) {
     throw new Error(json.message || '요청 실패');
