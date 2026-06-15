@@ -23,6 +23,7 @@ export interface Course {
   instructor_id?: number | null;
   instructor_name?: string;
   created_at: string;
+  price?: number;
   // JOIN 결과 추가 필드
   lecture_count?: number;
   thumbnail?: string;
