@@ -271,7 +271,7 @@ export interface Subscription {
 export interface InstructorComment extends Comment {
   user_name: string;
   replies: Reply[];
-  course_title?: string;
-  course_id?: number;
-  lecture_title?: string;
+  course_title: string;
+  course_id: number;
+  lecture_title: string;
 }
