@@ -148,7 +148,9 @@ export interface ApiResponse<T> {
 // ─── JWT Payload 타입 ────────────────────────────────────────
 
 export interface JwtPayload {
-  id: number;
+  id?: number;
+  userId?: number;
+  email?: string;
   role: UserRole;
   iat?: number;
   exp?: number;
