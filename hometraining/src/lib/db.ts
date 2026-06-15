@@ -25,7 +25,7 @@ export function getPool(): mysql.Pool {
 // 쿼리 실행 헬퍼
 export async function query<T = unknown>(
   sql: string,
-  values?: unknown[]
+  values?: any[]
 ): Promise<T[]> {
   const pool = getPool();
   const [rows] = await pool.execute(sql, values);
@@ -35,7 +35,7 @@ export async function query<T = unknown>(
 // 단건 조회 헬퍼
 export async function queryOne<T = unknown>(
   sql: string,
-  values?: unknown[]
+  values?: any[]
 ): Promise<T | null> {
   const rows = await query<T>(sql, values);
   return rows[0] ?? null;
@@ -44,7 +44,7 @@ export async function queryOne<T = unknown>(
 // INSERT 헬퍼 - insertId 반환
 export async function insert(
   sql: string,
-  values?: unknown[]
+  values?: any[]
 ): Promise<number> {
   const pool = getPool();
   const [result] = await pool.execute(sql, values);
