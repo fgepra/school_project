@@ -21,8 +21,9 @@ import {
   BookmarkedCourse,
 } from '@/types';
 
-// 🔥 Express 서버 주소로 변경
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = typeof window === 'undefined'
+  ? 'http://localhost:5000/api'   // 서버 사이드 (Next.js SSR)
+  : '/api';                        // 클라이언트 사이드 (Nginx 프록시)
 
 // 저장된 토큰 가져오기
 function getToken(): string | null {
