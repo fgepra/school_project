@@ -126,7 +126,7 @@ export const courseApi = {
 // ─── 강의 영상 API ───────────────────────────────────────────
 
 export const lectureApi = {
-  getById: (id: number) => apiFetch<Lecture>(`/lectures/${id}`),
+  getById: (id: number) => apiFetch<Lecture>(`/lectures/by-id/${id}`),
 };
 
 // ─── 진도 API ────────────────────────────────────────────────

@@ -268,16 +268,31 @@ export default function CoursesPage() {
                     <div
                       style={{
                         marginTop: 16,
-                        fontSize: 13,
-                        color: 'var(--accent)',
-                        fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4,
+                        justifyContent: 'space-between',
                       }}
                     >
-                      수강 시작하기
-                      <span style={{ fontSize: 11 }}>→</span>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: 'var(--accent)',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        수강 시작하기
+                        <span style={{ fontSize: 11 }}>→</span>
+                      </div>
+                      {(course as any).price > 0 ? (
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>
+                          ₩{Number((course as any).price).toLocaleString()}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>무료</span>
+                      )}
                     </div>
                   </div>
                 </div>
