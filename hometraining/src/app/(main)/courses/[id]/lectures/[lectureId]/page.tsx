@@ -12,10 +12,29 @@ import { Lecture, Comment } from '@/types';
 
 // ─── 유틸 ────────────────────────────────────────────────────
 function formatTime(totalSec: number): string {
+  if (!totalSec || isNaN(totalSec)) return '0:00';
   const t = Math.max(0, Math.floor(totalSec));
   const m = Math.floor(t / 60);
   const s = t % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function isYoutubeUrl(url: string): boolean {
+  return url.includes('youtube.com') || url.includes('youtu.be');
+}
+
+function getYoutubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') {
+      return `https://www.youtube.com/embed${u.pathname}`;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+    }
+  } catch {}
+  return null;
 }
 
 function parseMmSs(str: string): number {
@@ -591,7 +610,11 @@ export default function LectureWatchPage() {
           >
             {/* 헤더 행: 제목 + 모션 캡처 토글 버튼 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 14, fontWeight: 700 }}>유튜브에서 강의 영상 시청하기</p>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>
+                {lecture.video_url
+                  ? isYoutubeUrl(lecture.video_url) ? '유튜브 강의 영상' : '강의 영상'
+                  : '강의 영상'}
+              </p>
               <button
                 onClick={handleMotionToggle}
                 style={{
@@ -614,34 +637,29 @@ export default function LectureWatchPage() {
               </button>
             </div>
 
-            {/* 유튜브 링크 버튼 */}
-            <div style={{ textAlign: 'center' }}>
-              {lecture.video_url ? (
-                <a
-                  href={lecture.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '11px 24px', borderRadius: 10, background: '#FF0000',
-                    color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none',
-                    transition: 'opacity 0.15s',
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.opacity = '0.85')}
-                  onMouseOut={(e) => (e.currentTarget.style.opacity = '1')}
-                >
-                  <svg width="20" height="14" viewBox="0 0 22 16" fill="none">
-                    <path d="M21.543 2.5A2.75 2.75 0 0019.6.55C17.9 0 11 0 11 0S4.1 0 2.4.55A2.75 2.75 0 00.457 2.5 29 29 0 000 8a29 29 0 00.457 5.5A2.75 2.75 0 002.4 15.45C4.1 16 11 16 11 16s6.9 0 8.6-.55a2.75 2.75 0 001.943-1.95A29 29 0 0022 8a29 29 0 00-.457-5.5z" fill="#fff"/>
-                    <path d="M8.8 11.4V4.6L14.6 8l-5.8 3.4z" fill="#FF0000"/>
-                  </svg>
-                  유튜브에서 영상 보기
-                </a>
-              ) : (
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '10px 20px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'inline-block' }}>
-                  🎬 아직 영상 URL이 등록되지 않은 강의입니다
+            {/* 영상 플레이어 */}
+            {lecture.video_url ? (
+              isYoutubeUrl(lecture.video_url) ? (
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
+                  <iframe
+                    src={getYoutubeEmbedUrl(lecture.video_url) ?? ''}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
                 </div>
-              )}
-            </div>
+              ) : (
+                <video
+                  src={lecture.video_url}
+                  controls
+                  style={{ width: '100%', borderRadius: 10, background: '#000', display: 'block' }}
+                />
+              )
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '24px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                🎬 아직 영상 URL이 등록되지 않은 강의입니다
+              </div>
+            )}
 
             {/* 모션 캡처 패널 */}
             {motionOpen && (
