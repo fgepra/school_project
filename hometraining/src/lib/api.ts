@@ -8,7 +8,6 @@ import {
   Course,
   CourseCreateRequest,
   Lecture,
-  LectureCreateRequest,
   Progress,
   ProgressSaveRequest,
   Comment,
@@ -180,17 +179,15 @@ export const instructorApi = {
   getCourseLectures: (courseId: number) =>
     apiFetch<Lecture[]>(`/instructor/courses/${courseId}/lectures`),
 
-  createLecture: (courseId: number, data: LectureCreateRequest) =>
-    apiFetch<{ message: string; lectureId: number }>(
+  createLecture: (courseId: number, formData: FormData) =>
+    apiFetchFormData<{ message: string; lectureId: number }>(
       `/instructor/courses/${courseId}/lectures`,
-      { method: 'POST', body: JSON.stringify(data) }
+      'POST',
+      formData
     ),
 
-  updateLecture: (lectureId: number, data: Partial<LectureCreateRequest>) =>
-    apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
+  updateLecture: (lectureId: number, formData: FormData) =>
+    apiFetchFormData<{ message: string }>(`/instructor/lectures/${lectureId}`, 'PUT', formData),
 
   deleteLecture: (lectureId: number) =>
     apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}`, {

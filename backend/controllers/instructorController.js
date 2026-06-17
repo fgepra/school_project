@@ -149,8 +149,9 @@ exports.createLecture = (req, res) => {
       return res.status(403).json({ message: "해당 강의에 대한 권한이 없습니다." });
     }
 
+    const finalVideoUrl = req.file ? `/uploads/videos/${req.file.filename}` : (video_url || '');
     const sql = "INSERT INTO lectures (course_id, title, video_url, duration, order_num) VALUES (?, ?, ?, ?, ?)";
-    db.query(sql, [courseId, title, video_url || '', duration || 0, order_num || 0], (err, result) => {
+    db.query(sql, [courseId, title, finalVideoUrl, duration || 0, order_num || 0], (err, result) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.status(201).json({ message: "강의 영상이 추가되었습니다.", lectureId: result.insertId });
     });
@@ -176,8 +177,9 @@ exports.updateLecture = (req, res) => {
       return res.status(403).json({ message: "해당 강의 영상에 대한 권한이 없습니다." });
     }
 
+    const finalVideoUrl = req.file ? `/uploads/videos/${req.file.filename}` : (video_url ?? '');
     const sql = "UPDATE lectures SET title = ?, video_url = ?, duration = ?, order_num = ? WHERE id = ?";
-    db.query(sql, [title, video_url, duration, order_num, lectureId], (err) => {
+    db.query(sql, [title, finalVideoUrl, duration ?? 0, order_num ?? 0, lectureId], (err) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.json({ message: "강의 영상이 수정되었습니다." });
     });
