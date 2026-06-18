@@ -33,6 +33,7 @@ export interface Lecture {
   id: number;
   course_id: number;
   title: string;
+  description?: string;
   video_url: string;
   duration: number; // 초 단위
   order_num?: number;
