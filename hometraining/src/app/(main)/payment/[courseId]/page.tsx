@@ -81,22 +81,31 @@ export default function PaymentPage() {
   };
 
   // 토스페이 결제
-  const handleTossPay = () => {
+  const handleTossPay = async () => {
     setError('');
-    const tossPayments = (window as any).TossPayments?.(TOSS_CLIENT_KEY);
-    if (!tossPayments) {
+    const TossPayments = (window as any).TossPayments;
+    if (typeof TossPayments !== 'function') {
       setError('토스 결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
       return;
     }
+    const tossPayments = TossPayments(TOSS_CLIENT_KEY);
     const orderId = `order_${courseId}_${Date.now()}`;
-    tossPayments.requestPayment('카드', {
-      amount: course?.price ?? 0,
-      orderId,
-      orderName: course?.title ?? '',
-      customerName: '홈핏 고객',
-      successUrl: `${window.location.origin}/payment/toss/success?courseId=${courseId}`,
-      failUrl: `${window.location.origin}/payment/toss/fail?courseId=${courseId}`,
-    });
+    try {
+      await tossPayments.requestPayment('카드', {
+        amount: course?.price ?? 0,
+        orderId,
+        orderName: course?.title ?? '',
+        customerName: '홈핏 고객',
+        successUrl: `${window.location.origin}/payment/toss/success?courseId=${courseId}`,
+        failUrl: `${window.location.origin}/payment/toss/fail?courseId=${courseId}`,
+      });
+    } catch (err: any) {
+      if (err?.code === 'USER_CANCEL') {
+        setError('결제가 취소되었습니다.');
+      } else {
+        setError(err?.message || '결제 요청에 실패했습니다.');
+      }
+    }
   };
 
   const price = (course as any)?.price ?? 0;
