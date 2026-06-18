@@ -241,9 +241,14 @@ export default function CoursesPage() {
                       )}
                     </div>
 
-                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, lineHeight: 1.4, color: '#ffffff' }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, lineHeight: 1.4, color: '#ffffff' }}>
                       {course.title}
                     </h3>
+                    {course.instructor_name && (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                        👤 {course.instructor_name}
+                      </div>
+                    )}
                     <p
                       style={{
                         fontSize: 13,
@@ -258,13 +263,6 @@ export default function CoursesPage() {
                     >
                       {course.description}
                     </p>
-
-                    {/* 수강 시작 링크 힌트 */}
-                    {course.instructor_name && (
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                        👤 {course.instructor_name}
-                      </div>
-                    )}
                     <div
                       style={{
                         marginTop: 16,

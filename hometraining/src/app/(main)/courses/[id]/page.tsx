@@ -118,7 +118,12 @@ export default function CourseDetailPage() {
             </span>
           </div>
 
-          <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12 }}>{course.title}</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>{course.title}</h1>
+          {course.instructor_name && (
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+              👤 {course.instructor_name}
+            </div>
+          )}
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
             {course.description}
           </p>
