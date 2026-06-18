@@ -50,6 +50,7 @@ exports.createComment = (req, res) => {
   const { lectureId } = req.params;
   const { content } = req.body;
   const userId = req.user.id;
+  const userName = req.user.name || '학생';
 
   if (!content || !content.trim()) {
     return res.status(400).json({ message: "댓글 내용을 입력해주세요." });
@@ -59,15 +60,38 @@ exports.createComment = (req, res) => {
   db.query(sql, [userId, lectureId, content.trim()], (err, result) => {
     if (err) return res.status(500).json({ message: "서버 오류", error: err });
 
+    const commentId = result.insertId;
+
     // 생성된 댓글 조회하여 반환
     const selectSql = `
       SELECT c.*, u.name AS user_name, u.role AS user_role
       FROM comments c JOIN users u ON c.user_id = u.id
       WHERE c.id = ?
     `;
-    db.query(selectSql, [result.insertId], (err, rows) => {
+    db.query(selectSql, [commentId], (err, rows) => {
       if (err) return res.status(500).json({ message: "서버 오류", error: err });
       res.status(201).json({ ...rows[0], replies: [] });
+    });
+
+    // 해당 강의의 강사에게 알림 전송 (비동기, 응답과 무관)
+    const instructorSql = `
+      SELECT c.instructor_id, l.title AS lecture_title, u.name AS commenter_name
+      FROM lectures l
+      JOIN courses c ON l.course_id = c.id
+      JOIN users u ON u.id = ?
+      WHERE l.id = ?
+    `;
+    db.query(instructorSql, [userId, lectureId], (err, rows) => {
+      if (err || !rows.length) return;
+      const { instructor_id, lecture_title, commenter_name } = rows[0];
+      // 본인 강의에 본인이 댓글 달면 알림 생략
+      if (instructor_id === userId) return;
+      const message = `"${lecture_title}" 강의에 ${commenter_name || '학생'}님이 댓글을 남겼습니다.`;
+      db.query(
+        "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, 0, NOW())",
+        [instructor_id, message],
+        () => {}
+      );
     });
   });
 };
