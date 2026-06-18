@@ -200,7 +200,7 @@ export interface PaymentRequest {
 export interface Notification {
   id: number;
   user_id: number;
-  type: 'payment' | 'course_update' | 'progress' | 'system';
+  type: 'payment' | 'course_update' | 'progress' | 'system' | 'comment';
   title: string;
   message: string;
   is_read: 0 | 1;

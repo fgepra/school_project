@@ -75,7 +75,7 @@ exports.createComment = (req, res) => {
 
     // 해당 강의의 강사에게 알림 전송 (비동기, 응답과 무관)
     const instructorSql = `
-      SELECT c.instructor_id, l.title AS lecture_title, u.name AS commenter_name
+      SELECT c.instructor_id, c.id AS course_id, l.title AS lecture_title, u.name AS commenter_name
       FROM lectures l
       JOIN courses c ON l.course_id = c.id
       JOIN users u ON u.id = ?
@@ -83,13 +83,14 @@ exports.createComment = (req, res) => {
     `;
     db.query(instructorSql, [userId, lectureId], (err, rows) => {
       if (err || !rows.length) return;
-      const { instructor_id, lecture_title, commenter_name } = rows[0];
+      const { instructor_id, course_id, lecture_title, commenter_name } = rows[0];
       // 본인 강의에 본인이 댓글 달면 알림 생략
       if (instructor_id === userId) return;
       const message = `"${lecture_title}" 강의에 ${commenter_name || '학생'}님이 댓글을 남겼습니다.`;
       db.query(
-        "INSERT INTO notifications (user_id, message, is_read, created_at) VALUES (?, ?, 0, NOW())",
-        [instructor_id, message],
+        `INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at)
+         VALUES (?, 'comment', '새 댓글', ?, ?, 0, NOW())`,
+        [instructor_id, message, lectureId],
         () => {}
       );
     });

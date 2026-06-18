@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { notificationApi } from '@/lib/api';
+import { notificationApi, lectureApi } from '@/lib/api';
 import { Notification } from '@/types';
 
 const TYPE_ICON: Record<string, string> = {
@@ -10,10 +11,12 @@ const TYPE_ICON: Record<string, string> = {
   course_update: '📚',
   progress: '🏃',
   system: '🔔',
+  comment: '💬',
 };
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +33,18 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (id: number) => {
     await notificationApi.markAsRead(id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+  };
+
+  const handleClick = async (n: Notification) => {
+    if (!n.is_read) await handleMarkAsRead(n.id);
+    if (n.type === 'comment' && n.related_id) {
+      try {
+        const lecture = await lectureApi.getById(n.related_id);
+        router.push(`/courses/${lecture.course_id}/lectures/${lecture.id}`);
+      } catch {
+        // 강의를 찾을 수 없으면 그냥 읽음 처리만
+      }
+    }
   };
 
   const handleMarkAllAsRead = async () => {
@@ -74,9 +89,9 @@ export default function NotificationsPage() {
               display: 'flex', alignItems: 'flex-start', gap: 12,
               background: n.is_read ? undefined : 'rgba(99,102,241,0.06)',
               borderLeft: n.is_read ? undefined : '3px solid var(--primary)',
-              cursor: n.is_read ? undefined : 'pointer',
+              cursor: 'pointer',
             }}
-              onClick={() => !n.is_read && handleMarkAsRead(n.id)}
+              onClick={() => handleClick(n)}
             >
               <span style={{ fontSize: 22 }}>{TYPE_ICON[n.type] ?? '🔔'}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
