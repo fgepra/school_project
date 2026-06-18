@@ -6,6 +6,7 @@ const { requireAdmin } = require('../middleware/roleMiddleware');
 const { paymentRules, validate } = require('../middleware/validationMiddleware');
 
 router.post('/', auth, paymentRules, validate, controller.processPayment);
+router.post('/toss/confirm', auth, controller.confirmTossPayment);
 router.get('/my', auth, controller.getMyPayments);
 router.get('/check/:courseId', auth, controller.checkPurchase);
 router.post('/:id/refund', auth, controller.refund);

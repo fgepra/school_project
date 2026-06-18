@@ -294,6 +294,11 @@ export const paymentApi = {
     }),
   checkPurchase: (courseId: number) =>
     apiFetch<{ data: any }>(`/payments/check/${courseId}`),
+  confirmToss: (data: { paymentKey: string; orderId: string; amount: number; courseId: number }) =>
+    apiFetch<{ success: boolean; message: string }>('/payments/toss/confirm', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ─── 알림 API ────────────────────────────────────────────────
