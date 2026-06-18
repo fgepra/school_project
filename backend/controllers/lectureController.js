@@ -3,7 +3,7 @@ const db = require("../config/db");
 exports.getLectures = (req, res) => {
   const { courseId } = req.params;
 
-  const sql = "SELECT * FROM lectures WHERE course_id = ?";
+  const sql = "SELECT * FROM lectures WHERE course_id = ? AND is_hidden = 0 ORDER BY order_num ASC";
   db.query(sql, [courseId], (err, results) => {
     if (err) return res.status(500).json(err);
     res.json(results);

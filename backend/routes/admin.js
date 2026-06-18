@@ -16,4 +16,11 @@ router.patch("/users/:userId/role", adminController.updateUserRole);
 // GET /api/admin/stats - 통계 조회
 router.get("/stats", adminController.getStats);
 
+router.get("/lectures", adminController.getAllLectures);
+router.patch("/lectures/:lectureId/hide", adminController.hideLecture);
+router.patch("/lectures/:lectureId/unhide", adminController.unhideLecture);
+router.get("/publish-requests", adminController.getPublishRequests);
+router.patch("/publish-requests/:requestId/approve", adminController.approvePublishRequest);
+router.patch("/publish-requests/:requestId/reject", adminController.rejectPublishRequest);
+
 module.exports = router;

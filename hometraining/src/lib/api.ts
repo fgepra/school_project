@@ -155,6 +155,23 @@ export const adminApi = {
 
   // 통계 조회
   getStats: () => apiFetch<AdminStats>('/admin/stats'),
+
+  getAllLectures: () =>
+    apiFetch<{ data: any[] }>('/admin/lectures'),
+  hideLecture: (lectureId: number) =>
+    apiFetch<{ message: string }>(`/admin/lectures/${lectureId}/hide`, { method: 'PATCH' }),
+  unhideLecture: (lectureId: number) =>
+    apiFetch<{ message: string }>(`/admin/lectures/${lectureId}/unhide`, { method: 'PATCH' }),
+  getPublishRequests: () =>
+    apiFetch<{ data: any[] }>('/admin/publish-requests'),
+  approvePublishRequest: (id: number, adminNote?: string) =>
+    apiFetch<{ message: string }>(`/admin/publish-requests/${id}/approve`, {
+      method: 'PATCH', body: JSON.stringify({ admin_note: adminNote }),
+    }),
+  rejectPublishRequest: (id: number, adminNote: string) =>
+    apiFetch<{ message: string }>(`/admin/publish-requests/${id}/reject`, {
+      method: 'PATCH', body: JSON.stringify({ admin_note: adminNote }),
+    }),
 };
 
 // ─── 강사 API ────────────────────────────────────────────────
@@ -199,6 +216,11 @@ export const instructorApi = {
 
   getMyComments: () =>
     apiFetch<any[]>('/instructor/comments'),
+
+  requestPublish: (lectureId: number, reason?: string) =>
+    apiFetch<{ message: string }>(`/instructor/lectures/${lectureId}/publish-request`, {
+      method: 'POST', body: JSON.stringify({ reason }),
+    }),
 };
 
 // ─── 댓글 API ────────────────────────────────────────────────

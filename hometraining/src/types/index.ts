@@ -37,6 +37,8 @@ export interface Lecture {
   video_url: string;
   duration: number; // 초 단위
   order_num?: number;
+  is_hidden?: number;
+  hidden_by_admin?: number;
 }
 
 export interface Progress {

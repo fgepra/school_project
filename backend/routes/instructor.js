@@ -37,4 +37,6 @@ router.get("/courses/:courseId/student-progress", instructorController.getCourse
 // GET /api/instructor/comments - 내 강의에 달린 댓글 목록
 router.get("/comments", instructorController.getMyComments);
 
+router.post("/lectures/:lectureId/publish-request", instructorController.requestPublish);
+
 module.exports = router;

@@ -8,6 +8,13 @@ import { courseApi, instructorApi } from '@/lib/api';
 import { Course, Lecture } from '@/types';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
+type PublishRequestState = {
+  lectureId: number;
+  reason: string;
+  loading: boolean;
+  pendingExists: boolean;
+};
+
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);
@@ -42,6 +49,9 @@ export default function InstructorLecturesPage() {
 
   // 삭제 확인 모달
   const [deleteModal, setDeleteModal] = useState<{ id: number; title: string } | null>(null);
+
+  // 공개 요청
+  const [publishRequest, setPublishRequest] = useState<PublishRequestState | null>(null);
 
   // 드래그앤드롭
   const draggedIdRef = useRef<number | null>(null);
@@ -175,6 +185,21 @@ export default function InstructorLecturesPage() {
       setEditError(err instanceof Error ? err.message : '수정에 실패했습니다.');
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  // ─── 공개 요청 ────────────────────────────────────────────────
+  const handlePublishRequest = async (lectureId: number) => {
+    if (!publishRequest || publishRequest.lectureId !== lectureId) return;
+    setPublishRequest({ ...publishRequest, loading: true });
+    try {
+      await instructorApi.requestPublish(lectureId, publishRequest.reason || undefined);
+      alert('공개 요청이 제출되었습니다. 관리자 검토 후 공개 처리됩니다.');
+      setPublishRequest(null);
+      refreshLectures();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '요청에 실패했습니다.');
+      setPublishRequest({ ...publishRequest, loading: false });
     }
   };
 
@@ -617,8 +642,16 @@ export default function InstructorLecturesPage() {
 
                     {/* 영상 정보 */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
-                        {lecture.title}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600 }}>{lecture.title}</span>
+                        {!!lecture.hidden_by_admin && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                            background: 'rgba(239,68,68,0.15)', color: '#ef4444',
+                          }}>
+                            관리자 비공개
+                          </span>
+                        )}
                       </div>
                       {lecture.description && (
                         <div style={{
@@ -637,6 +670,22 @@ export default function InstructorLecturesPage() {
                         }
                       </div>
                     </div>
+
+                    {/* 공개 요청 버튼 (관리자 비공개 시) */}
+                    {!!lecture.hidden_by_admin && (
+                      publishRequest?.lectureId === lecture.id ? null : (
+                        <button
+                          style={{
+                            padding: '7px 14px', fontSize: 12, borderRadius: 6,
+                            border: '1px solid rgba(251,191,36,0.5)', background: 'rgba(251,191,36,0.1)',
+                            color: '#fbbf24', cursor: 'pointer', flexShrink: 0, fontWeight: 600,
+                          }}
+                          onClick={() => setPublishRequest({ lectureId: lecture.id, reason: '', loading: false, pendingExists: false })}
+                        >
+                          공개 요청
+                        </button>
+                      )
+                    )}
 
                     {/* 수정 버튼 */}
                     <button
@@ -664,6 +713,47 @@ export default function InstructorLecturesPage() {
                     >
                       {deletingId === lecture.id ? '삭제 중...' : '삭제'}
                     </button>
+                  </div>
+                )}
+
+                {/* 공개 요청 인라인 폼 */}
+                {publishRequest?.lectureId === lecture.id && (
+                  <div style={{ marginTop: 14, padding: '14px 16px', background: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: 13, marginBottom: 8 }}>
+                      수정 완료 후 관리자에게 공개 요청을 제출하세요. 검토 후 공개 처리됩니다.
+                    </p>
+                    <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>요청 사유 (선택)</label>
+                    <textarea
+                      rows={3}
+                      value={publishRequest.reason}
+                      onChange={(e) => setPublishRequest({ ...publishRequest, reason: e.target.value })}
+                      placeholder="수정한 내용이나 공개 요청 사유를 입력하세요."
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        borderRadius: 6, padding: '8px 12px',
+                        color: 'var(--text-primary)', fontSize: 13,
+                        resize: 'vertical', outline: 'none',
+                        fontFamily: "'Noto Sans KR', sans-serif",
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        className="btn-primary"
+                        style={{ padding: '7px 18px', fontSize: 13 }}
+                        disabled={publishRequest.loading}
+                        onClick={() => handlePublishRequest(lecture.id)}
+                      >
+                        {publishRequest.loading ? '제출 중...' : '공개 요청 제출'}
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        style={{ padding: '7px 18px', fontSize: 13 }}
+                        onClick={() => setPublishRequest(null)}
+                      >
+                        취소
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -260,6 +260,40 @@ exports.getMyComments = (req, res) => {
   });
 };
 
+// 강사: 강의 영상 공개 요청
+exports.requestPublish = (req, res) => {
+  const { lectureId } = req.params;
+  const { reason } = req.body;
+  const instructorId = req.user.id;
+
+  db.query(
+    'SELECT id FROM publish_requests WHERE lecture_id = ? AND status = "pending"',
+    [lectureId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ message: '서버 오류' });
+      if (rows.length) return res.status(400).json({ message: '이미 검토 중인 요청이 있습니다.' });
+
+      db.query(
+        'SELECT id FROM lectures WHERE id = ? AND hidden_by_admin = 1',
+        [lectureId],
+        (err, lectureRows) => {
+          if (err) return res.status(500).json({ message: '서버 오류' });
+          if (!lectureRows.length) return res.status(400).json({ message: '비공개 처리된 강의가 아닙니다.' });
+
+          db.query(
+            'INSERT INTO publish_requests (lecture_id, instructor_id, reason) VALUES (?, ?, ?)',
+            [lectureId, instructorId, reason || null],
+            (err) => {
+              if (err) return res.status(500).json({ message: '서버 오류' });
+              res.status(201).json({ message: '공개 요청이 제출되었습니다.' });
+            }
+          );
+        }
+      );
+    }
+  );
+};
+
 // 강의 영상 삭제
 exports.deleteLecture = (req, res) => {
   const { lectureId } = req.params;

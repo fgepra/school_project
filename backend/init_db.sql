@@ -42,6 +42,8 @@ CREATE TABLE lectures (
   video_url VARCHAR(500) DEFAULT '',
   duration INT DEFAULT 0,
   order_num INT DEFAULT 0,
+  is_hidden TINYINT(1) DEFAULT 0,
+  hidden_by_admin TINYINT(1) DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
   INDEX idx_course (course_id),
@@ -183,6 +185,21 @@ CREATE TABLE subscriptions (
   UNIQUE KEY unique_subscription (user_id, type),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 14. 공개 요청
+CREATE TABLE publish_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  lecture_id INT NOT NULL,
+  instructor_id INT NOT NULL,
+  reason TEXT DEFAULT NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  admin_note TEXT DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at DATETIME DEFAULT NULL,
+  FOREIGN KEY (lecture_id) REFERENCES lectures(id) ON DELETE CASCADE,
+  FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 기본 관리자 계정 (비밀번호: admin1234 → bcrypt 해시)
