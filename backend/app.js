@@ -22,6 +22,7 @@ const logRoutes = require("./routes/logs");
 const subscriptionRoutes = require("./routes/subscriptions");
 
 const { metricsMiddleware } = require("./middleware/metricsMiddleware");
+const logMiddleware = require("./middleware/logMiddleware");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const { registerScheduler } = require("./scheduler");
 const logger = require("./utils/logger");
@@ -39,6 +40,9 @@ app.use(express.json({ limit: '5mb' }));
 
 // API 메트릭 미들웨어 (모든 요청 추적)
 app.use(metricsMiddleware);
+
+// 활동 로그 미들웨어 (응답 완료 후 기록 — req.user 포함)
+app.use(logMiddleware);
 
 // 업로드된 이미지 정적 서빙
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
