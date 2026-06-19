@@ -126,6 +126,12 @@ export default function AdminDashboardPage() {
               title: '강의 관리',
               desc: '전체 강의 생성, 수정, 삭제',
             },
+            {
+              href: '/admin/lectures',
+              icon: '🎬',
+              title: '강의 영상 관리',
+              desc: '강의 영상 비공개 처리 및 공개 요청 승인',
+            },
           ].map((menu) => (
             <Link key={menu.href} href={menu.href} style={{ textDecoration: 'none' }}>
               <div
