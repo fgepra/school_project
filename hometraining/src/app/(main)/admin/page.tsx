@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
                 style={{ padding: 24, cursor: 'pointer', transition: 'border-color 0.15s' }}
               >
                 <div style={{ fontSize: 32, marginBottom: 12 }}>{menu.icon}</div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{menu.title}</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: '#ffffff' }}>{menu.title}</h3>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{menu.desc}</p>
               </div>
             </Link>
