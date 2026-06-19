@@ -5,6 +5,7 @@ exports.getCourses = (req, res) => {
     SELECT c.*, u.name AS instructor_name
     FROM courses c
     LEFT JOIN users u ON c.instructor_id = u.id
+    WHERE c.is_hidden = 0
   `;
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json(err);

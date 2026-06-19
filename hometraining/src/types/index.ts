@@ -27,6 +27,8 @@ export interface Course {
   // JOIN 결과 추가 필드
   lecture_count?: number;
   thumbnail?: string;
+  is_hidden?: number;
+  hidden_by_admin?: number;
 }
 
 export interface Lecture {

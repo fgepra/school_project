@@ -158,6 +158,10 @@ export const adminApi = {
 
   getAllLectures: () =>
     apiFetch<{ data: any[] }>('/admin/lectures'),
+  hideCourse: (courseId: number) =>
+    apiFetch<{ message: string }>(`/admin/courses/${courseId}/hide`, { method: 'PATCH' }),
+  unhideCourse: (courseId: number) =>
+    apiFetch<{ message: string }>(`/admin/courses/${courseId}/unhide`, { method: 'PATCH' }),
   hideLecture: (lectureId: number) =>
     apiFetch<{ message: string }>(`/admin/lectures/${lectureId}/hide`, { method: 'PATCH' }),
   unhideLecture: (lectureId: number) =>

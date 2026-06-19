@@ -16,6 +16,8 @@ router.patch("/users/:userId/role", adminController.updateUserRole);
 // GET /api/admin/stats - 통계 조회
 router.get("/stats", adminController.getStats);
 
+router.patch("/courses/:courseId/hide", adminController.hideCourse);
+router.patch("/courses/:courseId/unhide", adminController.unhideCourse);
 router.get("/lectures", adminController.getAllLectures);
 router.patch("/lectures/:lectureId/hide", adminController.hideLecture);
 router.patch("/lectures/:lectureId/unhide", adminController.unhideLecture);

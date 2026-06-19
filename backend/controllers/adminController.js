@@ -198,3 +198,47 @@ exports.rejectPublishRequest = (req, res) => {
     }
   );
 };
+
+// 강의(Course) 강제 비공개
+exports.hideCourse = (req, res) => {
+  const { courseId } = req.params;
+  db.query(
+    'UPDATE courses SET is_hidden = 1, hidden_by_admin = 1 WHERE id = ?',
+    [courseId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: '서버 오류' });
+      if (result.affectedRows === 0) return res.status(404).json({ message: '강의를 찾을 수 없습니다.' });
+
+      const notifySql = `
+        SELECT c.instructor_id, c.title AS course_title
+        FROM courses c WHERE c.id = ?
+      `;
+      db.query(notifySql, [courseId], (err, rows) => {
+        if (!err && rows.length) {
+          db.query(
+            `INSERT INTO notifications (user_id, type, title, message, related_id, is_read, created_at)
+             VALUES (?, 'system', '강의 비공개 처리', ?, ?, 0, NOW())`,
+            [rows[0].instructor_id, `"${rows[0].course_title}" 강의가 관리자에 의해 비공개 처리되었습니다.`, courseId],
+            () => {}
+          );
+        }
+      });
+
+      res.json({ message: '비공개 처리되었습니다.' });
+    }
+  );
+};
+
+// 강의(Course) 공개 복구 (관리자)
+exports.unhideCourse = (req, res) => {
+  const { courseId } = req.params;
+  db.query(
+    'UPDATE courses SET is_hidden = 0, hidden_by_admin = 0 WHERE id = ?',
+    [courseId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: '서버 오류' });
+      if (result.affectedRows === 0) return res.status(404).json({ message: '강의를 찾을 수 없습니다.' });
+      res.json({ message: '공개 처리되었습니다.' });
+    }
+  );
+};

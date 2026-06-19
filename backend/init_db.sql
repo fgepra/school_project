@@ -28,6 +28,8 @@ CREATE TABLE courses (
   price INT DEFAULT 0,
   thumbnail VARCHAR(255) DEFAULT NULL,
   instructor_id INT NOT NULL,
+  is_hidden TINYINT(1) DEFAULT 0,
+  hidden_by_admin TINYINT(1) DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (instructor_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_instructor (instructor_id)
